@@ -1,0 +1,7 @@
+"C:\Users\Miguel.Charris\AppData\Local\JetBrains\CLion 2025.1\bin\cmake\win\x64\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Release "-DCMAKE_MAKE_PROGRAM=C:/Users/Miguel.Charris/AppData/Local/JetBrains/CLion 2025.1/bin/ninja/win/x64/ninja.exe" -G Ninja -S C:\Users\Miguel.Charris\CLionProjects\test-opengl -B C:\Users\Miguel.Charris\CLionProjects\test-opengl\cmake-build-release
+-- Including Win32 support
+-- Could NOT find Doxygen (missing: DOXYGEN_EXECUTABLE) 
+-- Documentation generation requires Doxygen 1.9.8 or later
+-- Configuring done (0.3s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/Miguel.Charris/CLionProjects/test-opengl/cmake-build-release
