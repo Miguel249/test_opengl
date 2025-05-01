@@ -132,15 +132,15 @@
 			[
 				{
 					"backtrace" : 7,
-					"path" : "C:/Users/Miguel.Charris/CLionProjects/test-opengl/external/glfw/include"
+					"path" : "C:/Users/migue/CLionProjects/test_opengl/external/glfw/include"
 				},
 				{
 					"backtrace" : 8,
-					"path" : "C:/Users/Miguel.Charris/CLionProjects/test-opengl/external/glfw/src"
+					"path" : "C:/Users/migue/CLionProjects/test_opengl/external/glfw/src"
 				},
 				{
 					"backtrace" : 8,
-					"path" : "C:/Users/Miguel.Charris/CLionProjects/test-opengl/cmake-build-release/external/glfw/src"
+					"path" : "C:/Users/migue/CLionProjects/test_opengl/cmake-build-release/external/glfw/src"
 				}
 			],
 			"language" : "C",

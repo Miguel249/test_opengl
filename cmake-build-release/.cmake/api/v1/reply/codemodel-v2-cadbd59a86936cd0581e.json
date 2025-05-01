@@ -113,14 +113,14 @@
 				{
 					"directoryIndex" : 2,
 					"id" : "glfw::@ca12bac854c2ac6b2230",
-					"jsonFile" : "target-glfw-Release-190ed6f057883b7e8699.json",
+					"jsonFile" : "target-glfw-Release-d0c00e52f36fa6bfbcc7.json",
 					"name" : "glfw",
 					"projectIndex" : 1
 				},
 				{
 					"directoryIndex" : 0,
 					"id" : "test_opengl::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-test_opengl-Release-fca2cc0b3e39013613c5.json",
+					"jsonFile" : "target-test_opengl-Release-34242ea307341999934a.json",
 					"name" : "test_opengl",
 					"projectIndex" : 0
 				},
@@ -144,8 +144,8 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "C:/Users/Miguel.Charris/CLionProjects/test-opengl/cmake-build-release",
-		"source" : "C:/Users/Miguel.Charris/CLionProjects/test-opengl"
+		"build" : "C:/Users/migue/CLionProjects/test_opengl/cmake-build-release",
+		"source" : "C:/Users/migue/CLionProjects/test_opengl"
 	},
 	"version" : 
 	{
