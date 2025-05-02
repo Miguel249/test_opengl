@@ -41,76 +41,29 @@ int main() {
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
     std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
-    const Shader triangleShaderBlue("shader/triangle.vert","shader/color1.frag");
-    const Shader triangleShaderYellow("shader/triangle.vert","shader/color2.frag");
+    const Shader triangleShaderYellow("shader/triangle.vert","shader/color1.frag");
 
-    constexpr float triangle1Vertices[] = {
+    constexpr float triangleVertices[] = {
         // Positions                // Colors
-        0.0f, -0.25f, 0.0f,       0.5f, 0.1f, 0.8f,
-        0.3f, 0.1f, 0.0f,       0.0f, 1.0f, 0.0f,
-        0.3f, -0.8f, 0.0f,      0.0f, 0.0f, 1.0f,
-        0.7f, -0.8f, 0.0f,    0.5f, 0.1f, 0.8f,
-        0.7f, 0.9f, 0.0f,      1.0f, 1.0f, 0.0f,
-        0.3f, 0.9f, 0.0f,      0.0f, 1.0f, 1.0f,
-        0.0f, 0.5f, 0.0f,      1.0f, 1.0f, 0.0f,
-        -0.3f, 0.1f, 0.0f,       0.0f, 1.0f, 0.0f,
-        -0.3f, -0.8f, 0.0f,      0.0f, 0.0f, 1.0f,
-        -0.7f, -0.8f, 0.0f,    0.5f, 0.1f, 0.8f,
-        -0.7f, 0.9f, 0.0f,      1.0f, 1.0f, 0.0f,
-        -0.3f, 0.9f, 0.0f,      0.0f, 1.0f, 1.0f,
-    };
-
-    constexpr unsigned int triangle1VerticesIndexLeft[]{
-        // Lado izquierdo de la M
-        0, 6, 7,
-        7, 6, 11,
-        9, 10, 11,
-        8, 9, 11,
-    };
-
-    constexpr unsigned int triangle1VerticesIndexRight[]{
-        // Lado derecho de la M
-        0, 1, 6,
-        6, 1, 5,
-        5, 2, 3,
-        5, 4, 3,
+        0.5f, -0.5f, 0.0f,    1.0f, 0.0f, 0.0f,  // V1
+        -0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,  // V2
+        0.0f,  0.5f, 0.0f,    0.0f, 0.0f, 1.0f   // V3
     };
 
     // Creacion de Vertex Array Object y Vertex Buffer Object para triangulo 1
-    unsigned int VAO1[2]{};
-    unsigned int VBO1[2]{};
-    unsigned int EBO[2]{};
-    glGenVertexArrays(2, VAO1);
-    glGenBuffers(2, VBO1);
-    glGenBuffers(2, EBO);
+    unsigned int VAO1{};
+    unsigned int VBO1{};
+    glGenVertexArrays(1, &VAO1);
+    glGenBuffers(1, &VBO1);
 
     // Viculamos el VAO del triangulo 1
-    glBindVertexArray(VAO1[0]);
+    glBindVertexArray(VAO1);
 
     // Configuramos el VBO del triangulo 1
 
     // Asignar vertices al VBO1 (llenar el buffer con los datos del triangulo 1)
-    glBindBuffer(GL_ARRAY_BUFFER, VBO1[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle1Vertices), triangle1Vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangle1VerticesIndexLeft), triangle1VerticesIndexLeft,
-                 GL_STATIC_DRAW);
-
-    // Configurar los atributos del VBO del triangulo 1
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), static_cast<void *>(nullptr));
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void *>(3 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    glBindVertexArray(VAO1[1]);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO1[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle1Vertices), triangle1Vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangle1VerticesIndexRight), triangle1VerticesIndexRight,
-                 GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO1);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
 
     // Configurar los atributos del VBO del triangulo 1
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), static_cast<void *>(nullptr));
@@ -131,23 +84,15 @@ int main() {
 
         triangleShaderYellow.use();
 
-        glBindVertexArray(VAO1[0]);
-        glDrawElements(GL_TRIANGLES, sizeof(triangle1VerticesIndexLeft) / sizeof(unsigned int),GL_UNSIGNED_INT,
-                       nullptr);
-
-        triangleShaderBlue.use();
-
-        glBindVertexArray(VAO1[1]);
-        glDrawElements(GL_TRIANGLES, sizeof(triangle1VerticesIndexRight) / sizeof(unsigned int),GL_UNSIGNED_INT,
-                       nullptr);
+        glBindVertexArray(VAO1);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(2, VAO1);
-    glDeleteBuffers(2, VBO1);
-    glDeleteBuffers(2, EBO);
+    glDeleteVertexArrays(1, &VAO1);
+    glDeleteBuffers(1, &VBO1);
 
     glfwTerminate();
     return 0;
