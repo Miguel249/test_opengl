@@ -8,8 +8,8 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
 
 // settings
-constexpr unsigned int SCR_WIDTH  = 800;
-constexpr unsigned int SCR_HEIGHT = 600;
+constexpr unsigned int SCR_WIDTH  = 1200;
+constexpr unsigned int SCR_HEIGHT = 1200;
 
 auto vertexShaderSource = "#version 330 core\n"
         "layout (location = 0) in vec3 aPos;\n"
@@ -123,21 +123,49 @@ int main() {
 
     float triangle1Vertices[] = {
         0.0f, 0.0f, 0.0f,
-        -0.6f, 0.0f, 0.0f,
-        -0.3f, 0.6f, 0.0f,
+        0.0f, 0.1f, 0.0f,
+        -0.1f, 0.2f, 0.0f,
+        -0.15f, 0.15f, 0.0f,
+        -0.2f, 0.1f, 0.0f,
+        -0.2f, 0.2f, 0.0f,
+        -0.3f, 0.2f, 0.0f,
+        -0.3f, -0.1f, 0.0f,
+        -0.2f, -0.1f, 0.0f,
+        0.1f, 0.2f, 0.0f,
+        0.15f, 0.15f, 0.0f,
+        0.2f, 0.1f, 0.0f,
+        0.2f, 0.2f, 0.0f,
+        0.3f, 0.2f, 0.0f,
+        0.3f, -0.1f, 0.0f,
+        0.2f, -0.1f, 0.0f,
     };
 
-    float triangle2Vertices[] = {
-        0.0f, 0.0f, 0.0f,
-        0.6f, 0.0f, 0.0f,
-        0.3f, 0.6f, 0.0f,
+    unsigned int triangle1VerticesIndexLeft[]{
+        // Lado izquierdo de la M
+        0, 1, 2,
+        0, 9, 10,
+        2, 4, 5,
+        12, 15, 13,
+        6, 7, 8,
     };
+
+    unsigned int triangle1VerticesIndexRight[]{
+        // Lado derecho de la M
+        0, 1, 9,
+        0, 2, 3,
+        9, 11, 12,
+        5, 8, 6,
+        13, 14, 15
+    };
+
 
     // Creacion de Vertex Array Object y Vertex Buffer Object para triangulo 1
     unsigned int VAO1[2]{};
     unsigned int VBO1[2]{};
+    unsigned int EBO[2]{};
     glGenVertexArrays(2, VAO1);
     glGenBuffers(2, VBO1);
+    glGenBuffers(2, EBO);
 
     // Viculamos el VAO del triangulo 1
     glBindVertexArray(VAO1[0]);
@@ -148,27 +176,30 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, VBO1[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(triangle1Vertices), triangle1Vertices, GL_STATIC_DRAW);
 
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangle1VerticesIndexLeft), triangle1VerticesIndexLeft,
+                 GL_STATIC_DRAW);
+
     // Configurar los atributos del VBO del triangulo 1
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), static_cast<void *>(nullptr));
     glEnableVertexAttribArray(0);
 
-    // Viculamos el VAO del triangulo 2
     glBindVertexArray(VAO1[1]);
 
-    // Configuramos el VBO del triangulo 2
-
-    // Asignar vertices al VBO1 (llenar el buffer con los datos del triangulo 2)
     glBindBuffer(GL_ARRAY_BUFFER, VBO1[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle2Vertices), triangle2Vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle1Vertices), triangle1Vertices, GL_STATIC_DRAW);
 
-    // Configurar los atributos del VBO del triangulo 2
-    // NOTA: Cuando la separacion entre atributos es 0, es decir estan empaquetados, el stride puede ser 0
-    // Y dejar que openGL lo interprete
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, static_cast<void *>(nullptr));
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangle1VerticesIndexRight), triangle1VerticesIndexRight,
+                 GL_STATIC_DRAW);
+
+    // Configurar los atributos del VBO del triangulo 1
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), static_cast<void *>(nullptr));
     glEnableVertexAttribArray(0);
+
     glBindVertexArray(0);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     //render loop
     while (!glfwWindowShouldClose(window)) {
@@ -177,13 +208,15 @@ int main() {
         glClearColor(0.63f, 0.50f, 0.50f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUseProgram(shaderProgramBlue);
-        glBindVertexArray(VAO1[0]);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-
         glUseProgram(shaderProgramYellow);
+        glBindVertexArray(VAO1[0]);
+        glDrawElements(GL_TRIANGLES, sizeof(triangle1VerticesIndexLeft) / sizeof(unsigned int),GL_UNSIGNED_INT,
+                       nullptr);
+
+        glUseProgram(shaderProgramBlue);
         glBindVertexArray(VAO1[1]);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawElements(GL_TRIANGLES, sizeof(triangle1VerticesIndexRight) / sizeof(unsigned int),GL_UNSIGNED_INT,
+                       nullptr);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -191,6 +224,7 @@ int main() {
 
     glDeleteVertexArrays(2, VAO1);
     glDeleteBuffers(2, VBO1);
+    glDeleteBuffers(2, EBO);
     glDeleteProgram(shaderProgramBlue);
 
     glfwTerminate();
