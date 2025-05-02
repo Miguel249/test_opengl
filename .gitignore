@@ -1,0 +1,17 @@
+# Carpetas de compilación
+cmake-build-*/
+
+# Archivos de CMake
+CMakeFiles/
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+
+# CLion
+.idea/
+
+# Archivos temporales
+*.o
+*.obj
+*.exe
+*.log

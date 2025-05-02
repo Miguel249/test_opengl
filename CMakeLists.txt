@@ -7,6 +7,7 @@ add_subdirectory(external/glfw)
 
 include_directories(external/glad/include)
 include_directories(external/glfw/include)
+include_directories(src)
 
 file(GLOB src
      "src/*.cpp"
@@ -15,3 +16,5 @@ file(GLOB src
 
 add_executable(test_opengl ${src})
 target_link_libraries(test_opengl glfw ${CMAKE_DL_LIBS})
+
+file(COPY ${CMAKE_SOURCE_DIR}/src/shader DESTINATION ${CMAKE_BINARY_DIR})
