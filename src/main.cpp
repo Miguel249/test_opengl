@@ -13,8 +13,10 @@ void processInput(GLFWwindow *window);
 GLuint loadTexture(const char *path, bool flipVertically = true);
 
 // settings
-constexpr unsigned int SCR_WIDTH  = 800;
-constexpr unsigned int SCR_HEIGHT = 600;
+constexpr unsigned int SCR_WIDTH{ 1000 };
+constexpr unsigned int SCR_HEIGHT{ 600 };
+
+float opacity{ 0.2f };
 
 int main() {
     if (!glfwInit()) {
@@ -52,10 +54,10 @@ int main() {
 
     constexpr float triangleVertices[] = {
         // Positions         // Colors      //Texture Coords
-        0.175f, -0.1f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,  // V1
+        0.175f, -0.1f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // V1
         -0.175f, -0.1f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, // V2
-        -0.175f, 0.1f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,  // V3
-        0.175f, 0.1f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f    // V4
+        -0.175f, 0.1f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, // V3
+        0.175f, 0.1f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f // V4
     };
 
     constexpr int triangleIndices[] = {
@@ -63,9 +65,9 @@ int main() {
         2, 3, 0
     };
 
-    unsigned int VAO1{ };
-    unsigned int VBO1{ };
-    unsigned int EBO1{ };\
+    unsigned int VAO1{};
+    unsigned int VBO1{};
+    unsigned int EBO1{};\
 
     glGenVertexArrays(1, &VAO1);
     glGenBuffers(1, &VBO1);
@@ -90,7 +92,7 @@ int main() {
     glBindVertexArray(0);
 
     const unsigned int texture1{ loadTexture((projectDir + "/textures/container.jpg").c_str(), false) };
-    const unsigned int texture2{ loadTexture((projectDir + "/textures/awesomeface.png").c_str()) };
+    const unsigned int texture2{ loadTexture((projectDir + "/textures/dvd-text-logo.png").c_str()) };
 
     triangleShaderYellow.use();
 
@@ -102,9 +104,9 @@ int main() {
 
     float offsetX{ 0.0f };
     float offsetY{ 0.0f };
-    float lastFrame{ };
+    float lastFrame{};
 
-    glm::vec2 direction{ glm::normalize(glm::vec2(1.0f, 0.5f)) };
+    glm::vec2 direction{ glm::normalize(glm::vec2(1.0f, 0.3f)) };
 
     constexpr float recHalfWidth{ 0.35f / 2.0f };
     constexpr float recHalfHeight{ 0.2f / 2.0f };
@@ -121,28 +123,34 @@ int main() {
         offsetX += direction.x * speed * deltaTime;
         offsetY += direction.y * speed * deltaTime;
 
+        triangleShaderYellow.use();
+
         if (offsetX + recHalfWidth > 1.0f) {
             offsetX = 1.0f - recHalfWidth;
             direction.x *= -1.0f;
+            triangleShaderYellow.setFloat("colorAlt", 0.5f);
         } else if (offsetX - recHalfWidth < -1.0f) {
             offsetX = -1.0f + recHalfWidth;
             direction.x *= -1.0f;
+            triangleShaderYellow.setFloat("colorAlt", 0.7f);
         }
 
         if (offsetY + recHalfHeight > 1.0f) {
             offsetY = 1.0f - recHalfHeight;
             direction.y *= -1.0f;
+            triangleShaderYellow.setFloat("colorAlt", 0.9f);
         } else if (offsetY - recHalfHeight < -1.0f) {
             offsetY = -1.0f + recHalfHeight;
             direction.y *= -1.0f;
+            triangleShaderYellow.setFloat("colorAlt", 0.2f);
         }
 
-        glClearColor(0.63f, 0.50f, 0.50f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        triangleShaderYellow.use();
         triangleShaderYellow.setFloat("horizontalOffset", offsetX);
         triangleShaderYellow.setFloat("verticalOffset", offsetY);
+        triangleShaderYellow.setFloat("opacity", opacity);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
@@ -166,6 +174,20 @@ void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
+
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+        opacity += 0.0001f;
+        if (opacity >= 1.0f) {
+            opacity = 1.0f;
+        }
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+        opacity -= 0.0001f;
+        if (opacity <= 0.0f) {
+            opacity = 0.0f;
+        }
+    }
 }
 
 void framebuffer_size_callback(GLFWwindow *window, const int width, const int height) {
@@ -173,14 +195,14 @@ void framebuffer_size_callback(GLFWwindow *window, const int width, const int he
 }
 
 unsigned int loadTexture(const char *path, const bool flipVertically) {
-    unsigned int textureID{ };
+    unsigned int textureID{};
     glGenTextures(1, &textureID);
 
     if (flipVertically) {
         stbi_set_flip_vertically_on_load(true);
     }
 
-    int width, height, nrChannels;
+    int width{}, height{}, nrChannels{};
     unsigned char *data = stbi_load(path, &width, &height, &nrChannels, 0);
     if (data) {
         unsigned int format;
