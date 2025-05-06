@@ -3,7 +3,11 @@
 #include <builders/shader.h>
 #include <iostream>
 #include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
+#include <gtc/type_ptr.hpp>
 #define STB_IMAGE_IMPLEMENTATION
+#include <chrono>
+#include <thread>
 #include <builders/stb_image.h>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -13,7 +17,7 @@ void processInput(GLFWwindow *window);
 GLuint loadTexture(const char *path, bool flipVertically = true);
 
 // settings
-constexpr unsigned int SCR_WIDTH{ 1000 };
+constexpr unsigned int SCR_WIDTH{ 800 };
 constexpr unsigned int SCR_HEIGHT{ 600 };
 
 float opacity{ 0.2f };
@@ -37,6 +41,7 @@ int main() {
         return -1;
     }
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
@@ -49,15 +54,18 @@ int main() {
     std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
     const std::string projectDir = PROJECT_DIR;
-    const Shader triangleShaderYellow((projectDir + "/shader/triangle.vert").c_str(),
+    const Shader triangleShader1((projectDir + "/shader/triangle.vert").c_str(),
+                                      (projectDir + "/shader/color1.frag").c_str());
+
+    const Shader triangleShader2((projectDir + "/shader/triangle.vert").c_str(),
                                       (projectDir + "/shader/color1.frag").c_str());
 
     constexpr float triangleVertices[] = {
-        // Positions         // Colors      //Texture Coords
-        0.175f, -0.1f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // V1
-        -0.175f, -0.1f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, // V2
-        -0.175f, 0.1f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, // V3
-        0.175f, 0.1f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f // V4
+        // Positions     //Texture Coords
+        0.5f, -0.5f, 0.0f, 1.0f, 0.0f, // V1
+        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, // V2
+        -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, // V3
+        0.5f, 0.5f, 0.0f, 1.0f, 1.0f // V4
     };
 
     constexpr int triangleIndices[] = {
@@ -81,76 +89,41 @@ int main() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO1);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangleIndices), triangleIndices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), static_cast<void *>(nullptr));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), static_cast<void *>(nullptr));
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), reinterpret_cast<void *>(3 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void *>(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), reinterpret_cast<void *>(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
     const unsigned int texture1{ loadTexture((projectDir + "/textures/container.jpg").c_str(), false) };
-    const unsigned int texture2{ loadTexture((projectDir + "/textures/dvd-text-logo.png").c_str()) };
+    const unsigned int texture2{ loadTexture((projectDir + "/textures/awesomeface.png").c_str()) };
 
-    triangleShaderYellow.use();
+    triangleShader1.use();
 
-    triangleShaderYellow.setInt("texture1", 0);
+    triangleShader1.setInt("texture1", 0);
 
-    triangleShaderYellow.setInt("texture2", 1);
+    triangleShader1.setInt("texture2", 1);
+
+    triangleShader2.use();
+
+    triangleShader2.setInt("texture1", 0);
+
+    triangleShader2.setInt("texture2", 1);
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    float offsetX{ 0.0f };
-    float offsetY{ 0.0f };
-    float lastFrame{};
-
-    glm::vec2 direction{ glm::normalize(glm::vec2(1.0f, 0.3f)) };
-
-    constexpr float recHalfWidth{ 0.35f / 2.0f };
-    constexpr float recHalfHeight{ 0.2f / 2.0f };
-
     //render loop
     while (!glfwWindowShouldClose(window)) {
-        constexpr float speed{ 0.5f };
-        const auto currentFrame = static_cast<float>(glfwGetTime());
-        const float deltaTime{ std::min(currentFrame - lastFrame, 0.016f) };
-        lastFrame = currentFrame;
-
         processInput(window);
-
-        offsetX += direction.x * speed * deltaTime;
-        offsetY += direction.y * speed * deltaTime;
-
-        triangleShaderYellow.use();
-
-        if (offsetX + recHalfWidth > 1.0f) {
-            offsetX = 1.0f - recHalfWidth;
-            direction.x *= -1.0f;
-            triangleShaderYellow.setFloat("colorAlt", 0.5f);
-        } else if (offsetX - recHalfWidth < -1.0f) {
-            offsetX = -1.0f + recHalfWidth;
-            direction.x *= -1.0f;
-            triangleShaderYellow.setFloat("colorAlt", 0.7f);
-        }
-
-        if (offsetY + recHalfHeight > 1.0f) {
-            offsetY = 1.0f - recHalfHeight;
-            direction.y *= -1.0f;
-            triangleShaderYellow.setFloat("colorAlt", 0.9f);
-        } else if (offsetY - recHalfHeight < -1.0f) {
-            offsetY = -1.0f + recHalfHeight;
-            direction.y *= -1.0f;
-            triangleShaderYellow.setFloat("colorAlt", 0.2f);
-        }
-
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.8f, 0.8f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        triangleShaderYellow.setFloat("horizontalOffset", offsetX);
-        triangleShaderYellow.setFloat("verticalOffset", offsetY);
-        triangleShaderYellow.setFloat("opacity", opacity);
+        triangleShader1.use();
+        triangleShader1.setFloat("time", static_cast<float>(glfwGetTime()));
+        triangleShader1.setFloat("opacity", opacity);
+        triangleShader1.setVec3("cordMove", glm::vec3(0.5f, -0.5f, 0.0f));
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
@@ -159,8 +132,21 @@ int main() {
         glBindVertexArray(VAO1);
         glDrawElements(GL_TRIANGLES, sizeof(triangleIndices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
 
+        triangleShader2.use();
+        triangleShader2.setFloat("time", static_cast<float>(glfwGetTime()));
+        triangleShader2.setFloat("opacity", opacity);
+        triangleShader2.setVec3("cordMove", glm::vec3(-0.5f, 0.5f, 0.0f));
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture2);
+
+        glDrawElements(GL_TRIANGLES, sizeof(triangleIndices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     glDeleteVertexArrays(1, &VAO1);
@@ -176,14 +162,14 @@ void processInput(GLFWwindow *window) {
     }
 
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        opacity += 0.0001f;
+        opacity += 0.01f;
         if (opacity >= 1.0f) {
             opacity = 1.0f;
         }
     }
 
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        opacity -= 0.0001f;
+        opacity -= 0.01f;
         if (opacity <= 0.0f) {
             opacity = 0.0f;
         }
