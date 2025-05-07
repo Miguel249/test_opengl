@@ -3,9 +3,9 @@ layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec2 aTexCoord;
 
 out vec2 TexCoord;
-uniform float time;
-uniform vec3 cordMove;
-uniform float scalar;
+uniform float time = 0.0;
+uniform vec3 cordMove = vec3(0.0,0.0,0.0);
+uniform float scalar = 1.0;
 
 mat4 rotate2D(float angle);
 mat4 translateF(vec3 scalar);
@@ -16,12 +16,7 @@ void main()
     float angle = time;
     mat4 translate = translateF(cordMove);
     mat4 rotate = rotate2D(angle);
-    mat4 trans;
-    if (scalar > 0.0){
-        trans = translate * scaleF(scalar) * rotate;
-    } else {
-        trans = translate * rotate;
-    }
+    mat4 trans = translate * rotate * scaleF(scalar);
     gl_Position = trans * vec4(aPos, 1.0);
     TexCoord = aTexCoord;
 }

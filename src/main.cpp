@@ -3,11 +3,10 @@
 #include <builders/shader.h>
 #include <iostream>
 #include <glm.hpp>
-#include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
+#include <cmath>
 #define STB_IMAGE_IMPLEMENTATION
 #include <chrono>
-#include <thread>
 #include <builders/stb_image.h>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -20,7 +19,7 @@ GLuint loadTexture(const char *path, bool flipVertically = true);
 constexpr unsigned int SCR_WIDTH{ 800 };
 constexpr unsigned int SCR_HEIGHT{ 600 };
 
-float opacity{ 0.2f };
+glm::vec3 cordsMovement{};
 
 int main() {
     if (!glfwInit()) {
@@ -57,15 +56,12 @@ int main() {
     const Shader triangleShader1((projectDir + "/shader/triangle.vert").c_str(),
                                  (projectDir + "/shader/color1.frag").c_str());
 
-    const Shader triangleShader2((projectDir + "/shader/triangle.vert").c_str(),
-                                 (projectDir + "/shader/color1.frag").c_str());
-
     constexpr float triangleVertices[] = {
         // Positions     //Texture Coords
-        0.5f, -0.5f, 0.0f, 1.0f, 0.0f,  // V1
+        0.5f, -0.5f, 0.0f, 1.0f, 0.0f, // V1
         -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, // V2
-        -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,  // V3
-        0.5f, 0.5f, 0.0f, 1.0f, 1.0f    // V4
+        -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, // V3
+        0.5f, 0.5f, 0.0f, 1.0f, 1.0f // V4
     };
 
     constexpr int triangleIndices[] = {
@@ -73,9 +69,9 @@ int main() {
         2, 3, 0
     };
 
-    unsigned int VAO1{ };
-    unsigned int VBO1{ };
-    unsigned int EBO1{ };\
+    unsigned int VAO1{};
+    unsigned int VBO1{};
+    unsigned int EBO1{};
 
     glGenVertexArrays(1, &VAO1);
     glGenBuffers(1, &VBO1);
@@ -106,74 +102,80 @@ int main() {
 
     triangleShader1.setInt("texture2", 1);
 
-    triangleShader2.use();
-
-    triangleShader2.setInt("texture1", 0);
-
-    triangleShader2.setInt("texture2", 1);
-
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    const int refreshRate = mode->refreshRate;
+
+    const double targetFrameTime = 1.0 / refreshRate;
 
     //render loop
     while (!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+
         processInput(window);
         glClearColor(0.8f, 0.8f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
 
         triangleShader1.use();
+        triangleShader1.setVec3("cordMove", cordsMovement);
         triangleShader1.setFloat("time", static_cast<float>(glfwGetTime()));
-        triangleShader1.setFloat("opacity", opacity);
-        triangleShader1.setVec3("cordMove", glm::vec3(0.5f, -0.5f, 0.0f));
+        triangleShader1.setFloat("scalar", 1.0f);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
+
         glBindVertexArray(VAO1);
         glDrawElements(GL_TRIANGLES, sizeof(triangleIndices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
-
-        triangleShader2.use();
-        triangleShader2.setFloat("time", static_cast<float>(glfwGetTime()));
-        triangleShader2.setFloat("opacity", opacity);
-        triangleShader2.setVec3("cordMove", glm::vec3(-0.5f, 0.5f, 0.0f));
-        triangleShader2.setFloat("scalar", abs(sin(static_cast<float>(glfwGetTime()))));
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
-
-        glDrawElements(GL_TRIANGLES, sizeof(triangleIndices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
         glfwSwapBuffers(window);
-        glfwPollEvents();
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        glfwWaitEventsTimeout(targetFrameTime);
     }
 
     glDeleteVertexArrays(1, &VAO1);
     glDeleteBuffers(1, &VBO1);
+    glDeleteBuffers(1, &EBO1);
 
     glfwTerminate();
     return 0;
 }
 
 void processInput(GLFWwindow *window) {
+    constexpr float speed{0.05f};
+    constexpr float halfSize{0.5f};
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
 
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        opacity += 0.01f;
-        if (opacity >= 1.0f) {
-            opacity = 1.0f;
+        cordsMovement.y += speed;
+        if (cordsMovement.y >= 1.0f - halfSize) {
+            cordsMovement.y = 1.0f - halfSize;
         }
     }
 
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        opacity -= 0.01f;
-        if (opacity <= 0.0f) {
-            opacity = 0.0f;
+        cordsMovement.y -= speed;
+        if (cordsMovement.y <= -1.0f + halfSize) {
+            cordsMovement.y = -1.0f + halfSize;
+        }
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+        cordsMovement.x -= speed;
+        if (cordsMovement.x <= -1.0f + halfSize) {
+            cordsMovement.x = -1.0f + halfSize;
+        }
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+        cordsMovement.x += speed;
+        if (cordsMovement.x >= 1.0f - halfSize) {
+            cordsMovement.x = 1.0f - halfSize;
         }
     }
 }
@@ -183,14 +185,14 @@ void framebuffer_size_callback(GLFWwindow *window, const int width, const int he
 }
 
 unsigned int loadTexture(const char *path, const bool flipVertically) {
-    unsigned int textureID{ };
+    unsigned int textureID{};
     glGenTextures(1, &textureID);
 
     if (flipVertically) {
         stbi_set_flip_vertically_on_load(true);
     }
 
-    int width{ }, height{ }, nrChannels{ };
+    int width{}, height{}, nrChannels{};
     unsigned char *data = stbi_load(path, &width, &height, &nrChannels, 0);
     if (data) {
         unsigned int format;
