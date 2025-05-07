@@ -55,17 +55,17 @@ int main() {
 
     const std::string projectDir = PROJECT_DIR;
     const Shader triangleShader1((projectDir + "/shader/triangle.vert").c_str(),
-                                      (projectDir + "/shader/color1.frag").c_str());
+                                 (projectDir + "/shader/color1.frag").c_str());
 
     const Shader triangleShader2((projectDir + "/shader/triangle.vert").c_str(),
-                                      (projectDir + "/shader/color1.frag").c_str());
+                                 (projectDir + "/shader/color1.frag").c_str());
 
     constexpr float triangleVertices[] = {
         // Positions     //Texture Coords
-        0.5f, -0.5f, 0.0f, 1.0f, 0.0f, // V1
+        0.5f, -0.5f, 0.0f, 1.0f, 0.0f,  // V1
         -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, // V2
-        -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, // V3
-        0.5f, 0.5f, 0.0f, 1.0f, 1.0f // V4
+        -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,  // V3
+        0.5f, 0.5f, 0.0f, 1.0f, 1.0f    // V4
     };
 
     constexpr int triangleIndices[] = {
@@ -73,9 +73,9 @@ int main() {
         2, 3, 0
     };
 
-    unsigned int VAO1{};
-    unsigned int VBO1{};
-    unsigned int EBO1{};\
+    unsigned int VAO1{ };
+    unsigned int VBO1{ };
+    unsigned int EBO1{ };\
 
     glGenVertexArrays(1, &VAO1);
     glGenBuffers(1, &VBO1);
@@ -120,6 +120,7 @@ int main() {
         glClearColor(0.8f, 0.8f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+
         triangleShader1.use();
         triangleShader1.setFloat("time", static_cast<float>(glfwGetTime()));
         triangleShader1.setFloat("opacity", opacity);
@@ -136,6 +137,7 @@ int main() {
         triangleShader2.setFloat("time", static_cast<float>(glfwGetTime()));
         triangleShader2.setFloat("opacity", opacity);
         triangleShader2.setVec3("cordMove", glm::vec3(-0.5f, 0.5f, 0.0f));
+        triangleShader2.setFloat("scalar", abs(sin(static_cast<float>(glfwGetTime()))));
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
@@ -181,14 +183,14 @@ void framebuffer_size_callback(GLFWwindow *window, const int width, const int he
 }
 
 unsigned int loadTexture(const char *path, const bool flipVertically) {
-    unsigned int textureID{};
+    unsigned int textureID{ };
     glGenTextures(1, &textureID);
 
     if (flipVertically) {
         stbi_set_flip_vertically_on_load(true);
     }
 
-    int width{}, height{}, nrChannels{};
+    int width{ }, height{ }, nrChannels{ };
     unsigned char *data = stbi_load(path, &width, &height, &nrChannels, 0);
     if (data) {
         unsigned int format;
