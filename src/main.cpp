@@ -10,17 +10,21 @@
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
-void processInput(GLFWwindow *window, float halfSizeX, float halfSizeY);
+void processInput(GLFWwindow *window, glm::vec2 halfSize, float deltaTime);
 
 GLuint loadTexture(const char *path, bool flipVertically = true);
 
-glm::vec2 calculateHalfSize(const float *vertices, unsigned int length , float scalar = 1.0f);
+glm::vec2 calculateHalfSize(const float *vertices, unsigned int length, float scalar = 1.0f);
 
 // settings
 constexpr unsigned int SCR_WIDTH{ 800 };
 constexpr unsigned int SCR_HEIGHT{ 600 };
 
-glm::vec3 cordsMovement{};
+glm::vec3 cordsMovement{ };
+auto lastTime{ std::chrono::high_resolution_clock::now() };
+
+glm::vec3 targetPosition{ };
+float movementSpeed = 6.0f;
 
 int main() {
     if (!glfwInit()) {
@@ -59,10 +63,10 @@ int main() {
 
     constexpr float triangleVertices[] = {
         // Positions     //Texture Coords
-        0.5f, -0.5f, 0.0f, 1.0f, 0.0f, // V1
+        0.5f, -0.5f, 0.0f, 1.0f, 0.0f,  // V1
         -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, // V2
-        -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, // V3
-        0.5f, 0.5f, 0.0f, 1.0f, 1.0f // V4
+        -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,  // V3
+        0.5f, 0.5f, 0.0f, 1.0f, 1.0f    // V4
     };
 
     constexpr int triangleIndices[] = {
@@ -70,9 +74,9 @@ int main() {
         2, 3, 0
     };
 
-    unsigned int VAO1{};
-    unsigned int VBO1{};
-    unsigned int EBO1{};
+    unsigned int VAO1{ };
+    unsigned int VBO1{ };
+    unsigned int EBO1{ };
 
     glGenVertexArrays(1, &VAO1);
     glGenBuffers(1, &VBO1);
@@ -105,18 +109,22 @@ int main() {
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+    GLFWmonitor *monitor    = glfwGetPrimaryMonitor();
     const GLFWvidmode *mode = glfwGetVideoMode(monitor);
-    const int refreshRate = mode->refreshRate;
+    const int refreshRate   = mode->refreshRate;
 
     const double targetFrameTime = 1.0 / refreshRate;
 
+    const glm::vec2 halfSize = calculateHalfSize(triangleVertices, sizeof(triangleVertices) / sizeof(float) / 5, 0.2f);
     //render loop
     while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
+        auto currentTime      = std::chrono::high_resolution_clock::now();
+        const float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
+        lastTime              = currentTime;
 
-        const glm::vec2 halfSize {calculateHalfSize(triangleVertices, sizeof(triangleVertices) / sizeof(float) / 5, 0.2f)};
-        processInput(window, halfSize.x, halfSize.y);
+        processInput(window, halfSize, deltaTime);
+
+        cordsMovement = glm::mix(cordsMovement, targetPosition, movementSpeed * deltaTime);
         glClearColor(0.8f, 0.8f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -132,6 +140,7 @@ int main() {
         glBindVertexArray(VAO1);
         glDrawElements(GL_TRIANGLES, sizeof(triangleIndices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
         glfwSwapBuffers(window);
+        glfwPollEvents();
         glfwWaitEventsTimeout(targetFrameTime);
     }
 
@@ -143,37 +152,39 @@ int main() {
     return 0;
 }
 
-void processInput(GLFWwindow *window, const float halfSizeX, const float halfSizeY) {
-    constexpr float speed{ 0.01f };
+void processInput(GLFWwindow *window, const glm::vec2 halfSize, float deltaTime) {
+    constexpr float baseSpeed{ 1.0f };
+    const float speed{ baseSpeed * deltaTime };
+    constexpr float epsilon = 0.0001f;
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
 
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        cordsMovement.y += speed;
-        if (cordsMovement.y >= 1.0f - halfSizeY) {
-            cordsMovement.y = 1.0f - halfSizeY;
+        targetPosition.y += speed;
+        if (targetPosition.y >= 1.0f - halfSize.y) {
+            targetPosition.y = 1.0f - halfSize.y - epsilon;
         }
     }
 
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        cordsMovement.y -= speed;
-        if (cordsMovement.y <= -1.0f + halfSizeY) {
-            cordsMovement.y = -1.0f + halfSizeY;
+        targetPosition.y -= speed;
+        if (targetPosition.y <= -1.0f + halfSize.y) {
+            targetPosition.y = -1.0f + halfSize.y + epsilon;
         }
     }
 
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        cordsMovement.x -= speed;
-        if (cordsMovement.x <= -1.0f + halfSizeX) {
-            cordsMovement.x = -1.0f + halfSizeX;
+        targetPosition.x -= speed;
+        if (targetPosition.x <= -1.0f + halfSize.x) {
+            targetPosition.x = -1.0f + halfSize.x + epsilon;
         }
     }
 
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-        cordsMovement.x += speed;
-        if (cordsMovement.x >= 1.0f - halfSizeX) {
-            cordsMovement.x = 1.0f - halfSizeX;
+        targetPosition.x += speed;
+        if (targetPosition.x >= 1.0f - halfSize.x) {
+            targetPosition.x = 1.0f - halfSize.x - epsilon;
         }
     }
 }
@@ -183,14 +194,14 @@ void framebuffer_size_callback(GLFWwindow *window, const int width, const int he
 }
 
 unsigned int loadTexture(const char *path, const bool flipVertically) {
-    unsigned int textureID{};
+    unsigned int textureID{ };
     glGenTextures(1, &textureID);
 
     if (flipVertically) {
         stbi_set_flip_vertically_on_load(true);
     }
 
-    int width{}, height{}, nrChannels{};
+    int width{ }, height{ }, nrChannels{ };
     unsigned char *data = stbi_load(path, &width, &height, &nrChannels, 0);
     if (data) {
         unsigned int format;
@@ -223,7 +234,7 @@ unsigned int loadTexture(const char *path, const bool flipVertically) {
     return textureID;
 }
 
-glm::vec2 calculateHalfSize(const float *vertices, const unsigned int length ,const float scalar) {
+glm::vec2 calculateHalfSize(const float *vertices, const unsigned int length, const float scalar) {
     float minX = std::numeric_limits<float>::max();
     float maxX = std::numeric_limits<float>::lowest();
     float minY = std::numeric_limits<float>::max();
@@ -234,9 +245,9 @@ glm::vec2 calculateHalfSize(const float *vertices, const unsigned int length ,co
         const float y = vertices[i * 5 + 1];
 
         if (x < minX) minX = x * scalar;
-        if (x > maxX) maxX = x  * scalar;
-        if (y < minY) minY = y  * scalar;
-        if (y > maxY) maxY = y  * scalar;
+        if (x > maxX) maxX = x * scalar;
+        if (y < minY) minY = y * scalar;
+        if (y > maxY) maxY = y * scalar;
     }
 
     const float halfSizeX = (maxX - minX) / 2.0f;
