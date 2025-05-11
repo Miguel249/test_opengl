@@ -10,21 +10,15 @@
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
-void processInput(GLFWwindow *window, glm::vec2 halfSize, float deltaTime);
+void processInput(GLFWwindow *window);
 
 GLuint loadTexture(const char *path, bool flipVertically = true);
-
-glm::vec2 calculateHalfSize(const float *vertices, unsigned int length, float scalar = 1.0f);
 
 // settings
 constexpr unsigned int SCR_WIDTH{ 800 };
 constexpr unsigned int SCR_HEIGHT{ 600 };
 
-glm::vec3 cordsMovement{ };
-auto lastTime{ std::chrono::high_resolution_clock::now() };
-
-glm::vec3 targetPosition{ };
-float movementSpeed = 6.0f;
+glm::vec3 cameraPosition{ 0.0f, 0.0f, -3.0f };
 
 int main() {
     if (!glfwInit()) {
@@ -62,33 +56,79 @@ int main() {
                                  (projectDir + "/shader/color1.frag").c_str());
 
     constexpr float triangleVertices[] = {
-        // Positions     //Texture Coords
-        0.5f, -0.5f, 0.0f, 1.0f, 0.0f,  // V1
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, // V2
-        -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,  // V3
-        0.5f, 0.5f, 0.0f, 1.0f, 1.0f    // V4
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
+        -0.5f, 0.5f, 0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+
+        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        -0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f
     };
 
-    constexpr int triangleIndices[] = {
-        0, 1, 2,
-        2, 3, 0
-    };
+    // constexpr int triangleIndices[] = {
+    //     0, 1, 2,
+    //     2, 3, 0,
+    //     3, 4, 5,
+    //     5, 6, 3,
+    //     6, 7, 8,
+    //     8, 9, 6,
+    //     9, 10, 11,
+    //     11, 12, 9,
+    //     12, 13, 14,
+    //     14, 15, 12,
+    //     15, 16, 17,
+    //     17, 18, 15
+    // };
 
     unsigned int VAO1{ };
     unsigned int VBO1{ };
-    unsigned int EBO1{ };
+    // unsigned int EBO1{ };
 
     glGenVertexArrays(1, &VAO1);
     glGenBuffers(1, &VBO1);
-    glGenBuffers(1, &EBO1);
+    // glGenBuffers(1, &EBO1);
 
     glBindVertexArray(VAO1);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO1);
     glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO1);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangleIndices), triangleIndices, GL_STATIC_DRAW);
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO1);
+    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangleIndices), triangleIndices, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), static_cast<void *>(nullptr));
     glEnableVertexAttribArray(0);
@@ -99,7 +139,7 @@ int main() {
     glBindVertexArray(0);
 
     const unsigned int texture1{ loadTexture((projectDir + "/textures/container.jpg").c_str(), false) };
-    const unsigned int texture2{ loadTexture((projectDir + "/textures/awesomeface.png").c_str()) };
+    const unsigned int texture2{ loadTexture((projectDir + "/textures/awesomeface.png").c_str(), false) };
 
     triangleShader1.use();
 
@@ -115,22 +155,27 @@ int main() {
 
     const double targetFrameTime = 1.0 / refreshRate;
 
-    const glm::vec2 halfSize = calculateHalfSize(triangleVertices, sizeof(triangleVertices) / sizeof(float) / 5, 0.2f);
+    glm::vec3 cubePositions[] = {
+        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(2.0f, 5.0f, -15.0f), glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f), glm::vec3(2.4f, -0.4f, -3.5f), glm::vec3(-1.7f, 3.0f, -7.5f),
+        glm::vec3(1.3f, -2.0f, -2.5f), glm::vec3(1.5f, 2.0f, -2.5f), glm::vec3(1.5f, 0.2f, -1.5f),
+        glm::vec3(-1.3f, 1.0f, -1.5f)
+    };
+
+    // Matriz de projeccion
+    const glm::mat4 projection = glm::perspective(glm::radians(45.0f),
+                                                  static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT),
+                                                  0.1f, 100.0f);
+    glEnable(GL_DEPTH_TEST);
+
     //render loop
     while (!glfwWindowShouldClose(window)) {
-        auto currentTime      = std::chrono::high_resolution_clock::now();
-        const float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
-        lastTime              = currentTime;
+        processInput(window);
 
-        processInput(window, halfSize, deltaTime);
-
-        cordsMovement = glm::mix(cordsMovement, targetPosition, movementSpeed * deltaTime);
         glClearColor(0.8f, 0.8f, 1.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         triangleShader1.use();
-        triangleShader1.setVec3("cordMove", cordsMovement);
-        triangleShader1.setFloat("scalar", 0.2f);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
@@ -138,7 +183,24 @@ int main() {
         glBindTexture(GL_TEXTURE_2D, texture2);
 
         glBindVertexArray(VAO1);
-        glDrawElements(GL_TRIANGLES, sizeof(triangleIndices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
+        // glDrawElements(GL_TRIANGLES, sizeof(triangleIndices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
+
+        glm::mat4 view{ 1.0 };
+        view = glm::translate(view, cameraPosition);
+        triangleShader1.setMat4("view", view);
+        triangleShader1.setMat4("projection", projection);
+
+        for (unsigned int i = 0; i < 10; i++) {
+            glm::mat4 modelf{ 1.0f };
+            modelf = glm::translate(modelf, cubePositions[i]);
+            if (i % 3 == 0) {
+                const float angle{ static_cast<float>(glfwGetTime()) * 50.0f };
+                modelf = glm::rotate(modelf, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            }
+            triangleShader1.setMat4("model", modelf);
+            glDrawArrays(GL_TRIANGLES, 0, sizeof(triangleVertices) / sizeof(float));
+        }
+
         glfwSwapBuffers(window);
         glfwPollEvents();
         glfwWaitEventsTimeout(targetFrameTime);
@@ -146,46 +208,39 @@ int main() {
 
     glDeleteVertexArrays(1, &VAO1);
     glDeleteBuffers(1, &VBO1);
-    glDeleteBuffers(1, &EBO1);
+    // glDeleteBuffers(1, &EBO1);
 
     glfwTerminate();
     return 0;
 }
 
-void processInput(GLFWwindow *window, const glm::vec2 halfSize, float deltaTime) {
-    constexpr float baseSpeed{ 1.0f };
-    const float speed{ baseSpeed * deltaTime };
-    constexpr float epsilon = 0.0001f;
+void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
 
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        targetPosition.y += speed;
-        if (targetPosition.y >= 1.0f - halfSize.y) {
-            targetPosition.y = 1.0f - halfSize.y - epsilon;
-        }
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        cameraPosition.y -= 0.01f;
     }
 
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        targetPosition.y -= speed;
-        if (targetPosition.y <= -1.0f + halfSize.y) {
-            targetPosition.y = -1.0f + halfSize.y + epsilon;
-        }
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) != GLFW_PRESS) {
+        cameraPosition.z += 0.01f;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        cameraPosition.y += 0.01f;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) != GLFW_PRESS) {
+        cameraPosition.z -= 0.01f;
     }
 
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        targetPosition.x -= speed;
-        if (targetPosition.x <= -1.0f + halfSize.x) {
-            targetPosition.x = -1.0f + halfSize.x + epsilon;
-        }
+        cameraPosition.x += 0.01f;
     }
 
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-        targetPosition.x += speed;
-        if (targetPosition.x >= 1.0f - halfSize.x) {
-            targetPosition.x = 1.0f - halfSize.x - epsilon;
-        }
+        cameraPosition.x -= 0.01f;
     }
 }
 
@@ -232,26 +287,4 @@ unsigned int loadTexture(const char *path, const bool flipVertically) {
 
     stbi_image_free(data);
     return textureID;
-}
-
-glm::vec2 calculateHalfSize(const float *vertices, const unsigned int length, const float scalar) {
-    float minX = std::numeric_limits<float>::max();
-    float maxX = std::numeric_limits<float>::lowest();
-    float minY = std::numeric_limits<float>::max();
-    float maxY = std::numeric_limits<float>::lowest();
-
-    for (int i = 0; i < length; ++i) {
-        const float x = vertices[i * 5]; // (3 pos + 2 UV)
-        const float y = vertices[i * 5 + 1];
-
-        if (x < minX) minX = x * scalar;
-        if (x > maxX) maxX = x * scalar;
-        if (y < minY) minY = y * scalar;
-        if (y > maxY) maxY = y * scalar;
-    }
-
-    const float halfSizeX = (maxX - minX) / 2.0f;
-    const float halfSizeY = (maxY - minY) / 2.0f;
-
-    return glm::vec2{ halfSizeX, halfSizeY };
 }
