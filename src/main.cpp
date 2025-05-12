@@ -14,11 +14,27 @@ void processInput(GLFWwindow *window);
 
 GLuint loadTexture(const char *path, bool flipVertically = true);
 
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
+void mouse_callback(GLFWwindow *window, double xposIn, double yposIn);
+
 // settings
 constexpr unsigned int SCR_WIDTH{ 800 };
 constexpr unsigned int SCR_HEIGHT{ 600 };
 
-glm::vec3 cameraPosition{ 0.0f, 0.0f, -3.0f };
+glm::vec3 cameraPos{ 0.0f, 0.0f, 3.0f };
+glm::vec3 cameraFront{ 0.0f, 0.0f, -1.0f };
+glm::vec3 cameraUp{ 0.0f, 1.0f, 0.0f };
+
+bool firstMouse = true;
+float yaw = -90.0f;
+float pitch = 0.0f;
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
+float fov = 45.0f;
+
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
 
 int main() {
     if (!glfwInit()) {
@@ -41,6 +57,10 @@ int main() {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
+
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
         std::cout << "Failed to initialize GLAD" << std::endl;
@@ -50,6 +70,8 @@ int main() {
     int nrAttributes;
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
     std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
+
+    glEnable(GL_DEPTH_TEST);
 
     const std::string projectDir = PROJECT_DIR;
     const Shader triangleShader1((projectDir + "/shader/triangle.vert").c_str(),
@@ -99,6 +121,13 @@ int main() {
         -0.5f, 0.5f, -0.5f, 0.0f, 1.0f
     };
 
+    constexpr glm::vec3 cubePositions[] = {
+        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(2.0f, 5.0f, -15.0f), glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f), glm::vec3(2.4f, -0.4f, -3.5f), glm::vec3(-1.7f, 3.0f, -7.5f),
+        glm::vec3(1.3f, -2.0f, -2.5f), glm::vec3(1.5f, 2.0f, -2.5f), glm::vec3(1.5f, 0.2f, -1.5f),
+        glm::vec3(-1.3f, 1.0f, -1.5f)
+    };
+
     // constexpr int triangleIndices[] = {
     //     0, 1, 2,
     //     2, 3, 0,
@@ -114,8 +143,8 @@ int main() {
     //     17, 18, 15
     // };
 
-    unsigned int VAO1{ };
-    unsigned int VBO1{ };
+    unsigned int VAO1{};
+    unsigned int VBO1{};
     // unsigned int EBO1{ };
 
     glGenVertexArrays(1, &VAO1);
@@ -149,46 +178,46 @@ int main() {
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    GLFWmonitor *monitor    = glfwGetPrimaryMonitor();
+    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode *mode = glfwGetVideoMode(monitor);
-    const int refreshRate   = mode->refreshRate;
+    const int refreshRate = mode->refreshRate;
 
     const double targetFrameTime = 1.0 / refreshRate;
 
-    glm::vec3 cubePositions[] = {
-        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(2.0f, 5.0f, -15.0f), glm::vec3(-1.5f, -2.2f, -2.5f),
-        glm::vec3(-3.8f, -2.0f, -12.3f), glm::vec3(2.4f, -0.4f, -3.5f), glm::vec3(-1.7f, 3.0f, -7.5f),
-        glm::vec3(1.3f, -2.0f, -2.5f), glm::vec3(1.5f, 2.0f, -2.5f), glm::vec3(1.5f, 0.2f, -1.5f),
-        glm::vec3(-1.3f, 1.0f, -1.5f)
-    };
-
-    // Matriz de projeccion
-    const glm::mat4 projection = glm::perspective(glm::radians(45.0f),
-                                                  static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT),
-                                                  0.1f, 100.0f);
-    glEnable(GL_DEPTH_TEST);
-
     //render loop
     while (!glfwWindowShouldClose(window)) {
+        const float currentFrame{ static_cast<float>(glfwGetTime()) };
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
         processInput(window);
 
         glClearColor(0.8f, 0.8f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        triangleShader1.use();
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
-        glBindVertexArray(VAO1);
-        // glDrawElements(GL_TRIANGLES, sizeof(triangleIndices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
+        triangleShader1.use();
 
-        glm::mat4 view{ 1.0 };
-        view = glm::translate(view, cameraPosition);
-        triangleShader1.setMat4("view", view);
+        const glm::mat4 projection = glm::perspective(glm::radians(fov),
+                                                      static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT),
+                                                      0.1f, 100.0f);
         triangleShader1.setMat4("projection", projection);
+
+        glm::mat4 view{
+            glm::lookAt(
+                cameraPos,
+                cameraPos + cameraFront,
+                cameraUp
+            )
+        };
+        triangleShader1.setMat4("view", view);
+
+        glBindVertexArray(VAO1);
 
         for (unsigned int i = 0; i < 10; i++) {
             glm::mat4 modelf{ 1.0f };
@@ -214,33 +243,70 @@ int main() {
     return 0;
 }
 
+void mouse_callback(GLFWwindow *window, double xposIn, double yposIn) {
+    const auto xpos = static_cast<float>(xposIn);
+    const auto ypos = static_cast<float>(yposIn);
+
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
+
+    float sensitivity = 0.1f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    if (pitch > 89.0f)
+        pitch = 89.0f;
+    if (pitch < -89.0f)
+        pitch = -89.0f;
+
+    glm::vec3 front;
+    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    front.y = sin(glm::radians(pitch));
+    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(front);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    fov -= static_cast<float>(yoffset);
+    if (fov < 1.0f)
+        fov = 1.0f;
+    if (fov > 45.0f)
+        fov = 45.0f;
+}
+
 void processInput(GLFWwindow *window) {
+    float cameraSpeed{ 2.5f * deltaTime };
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
 
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        cameraPosition.y -= 0.01f;
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        cameraPos += cameraSpeed * cameraFront;
     }
 
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) != GLFW_PRESS) {
-        cameraPosition.z += 0.01f;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        cameraPos -= cameraSpeed * cameraFront;
     }
 
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        cameraPosition.y += 0.01f;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
     }
 
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) != GLFW_PRESS) {
-        cameraPosition.z -= 0.01f;
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        cameraPosition.x += 0.01f;
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-        cameraPosition.x -= 0.01f;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
     }
 }
 
@@ -249,14 +315,14 @@ void framebuffer_size_callback(GLFWwindow *window, const int width, const int he
 }
 
 unsigned int loadTexture(const char *path, const bool flipVertically) {
-    unsigned int textureID{ };
+    unsigned int textureID{};
     glGenTextures(1, &textureID);
 
     if (flipVertically) {
         stbi_set_flip_vertically_on_load(true);
     }
 
-    int width{ }, height{ }, nrChannels{ };
+    int width{}, height{}, nrChannels{};
     unsigned char *data = stbi_load(path, &width, &height, &nrChannels, 0);
     if (data) {
         unsigned int format;
