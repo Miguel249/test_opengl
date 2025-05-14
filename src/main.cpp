@@ -7,6 +7,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <chrono>
 #include <builders/stb_image.h>
+#include "builders/camera.h"
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
@@ -22,16 +23,10 @@ void mouse_callback(GLFWwindow *window, double xposIn, double yposIn);
 constexpr unsigned int SCR_WIDTH{ 800 };
 constexpr unsigned int SCR_HEIGHT{ 600 };
 
-glm::vec3 cameraPos{ 0.0f, 0.0f, 3.0f };
-glm::vec3 cameraFront{ 0.0f, 0.0f, -1.0f };
-glm::vec3 cameraUp{ 0.0f, 1.0f, 0.0f };
-
-bool firstMouse = true;
-float yaw = -90.0f;
-float pitch = 0.0f;
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
-float fov = 45.0f;
+bool firstMouse = true;
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -203,22 +198,15 @@ int main() {
 
         triangleShader1.use();
 
-        const glm::mat4 projection = glm::perspective(glm::radians(fov),
+        const glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom),
                                                       static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT),
                                                       0.1f, 100.0f);
         triangleShader1.setMat4("projection", projection);
 
-        glm::mat4 view{
-            glm::lookAt(
-                cameraPos,
-                cameraPos + cameraFront,
-                cameraUp
-            )
-        };
+        glm::mat4 view{ camera.GetViewMatrix()};
         triangleShader1.setMat4("view", view);
 
         glBindVertexArray(VAO1);
-
         for (unsigned int i = 0; i < 10; i++) {
             glm::mat4 modelf{ 1.0f };
             modelf = glm::translate(modelf, cubePositions[i]);
@@ -254,59 +242,39 @@ void mouse_callback(GLFWwindow *window, double xposIn, double yposIn) {
         firstMouse = false;
     }
 
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;
+    const float xoffset = xpos - lastX;
+    const float yoffset = lastY - ypos;
+
     lastX = xpos;
     lastY = ypos;
 
-    float sensitivity = 0.1f;
-    xoffset *= sensitivity;
-    yoffset *= sensitivity;
-
-    yaw += xoffset;
-    pitch += yoffset;
-
-    if (pitch > 89.0f)
-        pitch = 89.0f;
-    if (pitch < -89.0f)
-        pitch = -89.0f;
-
-    glm::vec3 front;
-    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-    front.y = sin(glm::radians(pitch));
-    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    cameraFront = glm::normalize(front);
+    camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+void scroll_callback(GLFWwindow* window, double xoffset, const double yoffset)
 {
-    fov -= static_cast<float>(yoffset);
-    if (fov < 1.0f)
-        fov = 1.0f;
-    if (fov > 45.0f)
-        fov = 45.0f;
+    camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
 void processInput(GLFWwindow *window) {
-    float cameraSpeed{ 2.5f * deltaTime };
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        cameraPos += cameraSpeed * cameraFront;
+        camera.ProcessKeyboard(FORWARD, deltaTime);
     }
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        cameraPos -= cameraSpeed * cameraFront;
+        camera.ProcessKeyboard(BACKWARD, deltaTime);
     }
 
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        camera.ProcessKeyboard(LEFT, deltaTime);
     }
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        camera.ProcessKeyboard(RIGHT, deltaTime);
     }
 }
 
