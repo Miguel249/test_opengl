@@ -1,12 +1,12 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <builders/shader.h>
+#include <renderer/Shader.cpp>
 #include <iostream>
 #include <glm.hpp>
 #include <gtc/type_ptr.hpp>
 #define STB_IMAGE_IMPLEMENTATION
 #include <chrono>
-#include <builders/stb_image.h>
+#include <stb_image.h>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
@@ -57,9 +57,9 @@ int main() {
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
     std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
-    const std::string projectDir = PROJECT_DIR;
-    const Shader triangleShader1((projectDir + "/shader/triangle.vert").c_str(),
-                                 (projectDir + "/shader/color1.frag").c_str());
+    const std::string shadersDir = SHADERS_DIR;
+    const Shader triangleShader1((shadersDir + "/triangle.vert").c_str(),
+                                 (shadersDir + "/color1.frag").c_str());
 
     constexpr float triangleVertices[] = {
         // Positions     //Texture Coords
@@ -98,14 +98,13 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    const unsigned int texture1{ loadTexture((projectDir + "/textures/container.jpg").c_str(), false) };
-    const unsigned int texture2{ loadTexture((projectDir + "/textures/awesomeface.png").c_str()) };
+
+    const std::string assetsDir = ASSETS_DIR;
+    const unsigned int texture1{ loadTexture((assetsDir + "/textures/snake_head.png").c_str()) };
 
     triangleShader1.use();
 
     triangleShader1.setInt("texture1", 0);
-
-    triangleShader1.setInt("texture2", 1);
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -134,8 +133,6 @@ int main() {
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
 
         glBindVertexArray(VAO1);
         glDrawElements(GL_TRIANGLES, sizeof(triangleIndices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);

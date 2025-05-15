@@ -5,19 +5,26 @@ set(CMAKE_CXX_STANDARD 26)
 
 add_subdirectory(external/glfw)
 
-include_directories(external/glad/include)
-include_directories(external/glfw/include)
-include_directories(external/glm)
-include_directories(src)
+include_directories(
+        external/glad/include
+        external/glfw/include
+        external/glm
+        external/stb
+        include
+        src
+)
 
-file(GLOB src
-        "src/*.cpp"
+set(SOURCES
+        "main.cpp"
+        "src/renderer/Shader.cpp"
         "external/glad/src/glad.c"
 )
 
-add_executable(test_opengl ${src})
+add_executable(test_opengl ${SOURCES})
 target_link_libraries(test_opengl glfw ${CMAKE_DL_LIBS})
 
 target_compile_definitions(test_opengl PRIVATE
-        PROJECT_DIR="${CMAKE_SOURCE_DIR}/src"
+        SOURCE_DIR="${CMAKE_SOURCE_DIR}/src"
+        ASSETS_DIR="${CMAKE_SOURCE_DIR}/assets"
+        SHADERS_DIR="${CMAKE_SOURCE_DIR}/shaders"
 )
