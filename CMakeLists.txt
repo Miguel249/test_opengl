@@ -16,7 +16,6 @@ include_directories(
 
 set(SOURCES
         "main.cpp"
-        "src/renderer/Shader.cpp"
         "external/glad/src/glad.c"
 )
 
