@@ -10,7 +10,7 @@
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
-void processInput(GLFWwindow *window, float deltaTime);
+void processInput(GLFWwindow *window, float deltaTime, Shader shader);
 
 GLuint loadTexture(const char *path, bool flipVertically = true);
 
@@ -20,11 +20,12 @@ glm::vec2 calculateHalfSize(const float *vertices, unsigned int length, glm::vec
 constexpr unsigned int SCR_WIDTH{ 800 };
 constexpr unsigned int SCR_HEIGHT{ 600 };
 
-glm::vec3 cordsMovement{ 0.0f, 0.0f, 0.0f };
-auto lastTime{ std::chrono::high_resolution_clock::now() };
+auto lastTime = std::chrono::high_resolution_clock::now();
 
-glm::vec2 direction{ 0.0f, 0.0f };
-float cellSize{};
+glm::vec3 cordsMovement{ 0.0f, 0.0f, 0.0f };
+
+float cellTotalSize{ };
+float cellStep{ };
 
 int main() {
     if (!glfwInit()) {
@@ -68,10 +69,10 @@ int main() {
 
     constexpr float triangleVertices[] = {
         // Positions     //Texture Coords
-        0.5f, -0.5f, 0.0f, 0.8515625f, 0.0f, // V1
+        0.5f, -0.5f, 0.0f, 0.8515625f, 0.0f,  // V1
         -0.5f, -0.5f, 0.0f, 0.1484375f, 0.0f, // V2
-        -0.5f, 0.5f, 0.0f, 0.1484375f, 1.0f, // V3
-        0.5f, 0.5f, 0.0f, 0.8515625f, 1.0f // V4
+        -0.5f, 0.5f, 0.0f, 0.1484375f, 1.0f,  // V3
+        0.5f, 0.5f, 0.0f, 0.8515625f, 1.0f    // V4
     };
 
     constexpr int triangleIndices[] = {
@@ -86,21 +87,22 @@ int main() {
 
     for (int row = 0; row < gridRows; ++row) {
         for (int col = 0; col < gridCols; ++col) {
-            float x = (static_cast<float>(col) - static_cast<float>(gridCols / 2)) * scalar.x;
-            float y = (static_cast<float>(row) - static_cast<float>(gridRows / 2)) * scalar.y;
+            float x = (static_cast<float>(col) - static_cast<float>(gridCols / 2)) * scalar.x; // NOLINT(*-integer-division)
+            float y = (static_cast<float>(row) - static_cast<float>(gridRows / 2)) * scalar.y; // NOLINT(*-integer-division)
             if (col == 8 && row == 8) {
-                cellSize = x + y;
+                cellTotalSize = x + y;
             }
-            std::cout << "COL: " << col << ", ROW: " << row << std::endl;
-            std::cout << x << ", " << y << ", " << x + y << std::endl;
+            if (row == 8 && col == 5) {
+                cellStep = x;
+            }
             gridOffsets.emplace_back(x, y, 0.0f);
         }
     }
 
-    unsigned int VAO1{};
-    unsigned int VBO1{};
-    unsigned int instanceVBO{};
-    unsigned int EBO1{};
+    unsigned int VAO1{ };
+    unsigned int VBO1{ };
+    unsigned int instanceVBO{ };
+    unsigned int EBO1{ };
 
     glGenVertexArrays(1, &VAO1);
     glGenBuffers(1, &VBO1);
@@ -110,7 +112,8 @@ int main() {
     glBindVertexArray(VAO1);
 
     glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-    glBufferData(GL_ARRAY_BUFFER, gridOffsets.size() * sizeof(glm::vec3), gridOffsets.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(gridOffsets.size() * sizeof(glm::vec3)), gridOffsets.data(),
+                 GL_STATIC_DRAW);
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), static_cast<void *>(nullptr));
     glVertexAttribDivisor(2, 1);
@@ -140,19 +143,19 @@ int main() {
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+    GLFWmonitor *monitor    = glfwGetPrimaryMonitor();
     const GLFWvidmode *mode = glfwGetVideoMode(monitor);
-    const int refreshRate = mode->refreshRate;
+    const int refreshRate   = mode->refreshRate;
 
     const double targetFrameTime = 1.0 / refreshRate;
 
     //render loop
     while (!glfwWindowShouldClose(window)) {
         auto currentTime = std::chrono::high_resolution_clock::now();
-        const float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
-        lastTime = currentTime;
+        float deltaTime  = std::chrono::duration<float>(currentTime - lastTime).count();
+        lastTime         = currentTime;
 
-        processInput(window, deltaTime);
+        processInput(window, deltaTime, triangleShader1);
 
         glClearColor(0.8f, 0.8f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -160,18 +163,20 @@ int main() {
         triangleShader1.use();
 
         // --- DIBUJAR CUADRÍCULA DE FONDO ---
-        triangleShader1.setVec3("cordMove", glm::vec3(0.0f)); // sin movimiento
-        triangleShader1.setVec3("scalar", scalar); // mismo tamaño
+        triangleShader1.setVec3("cordMove", glm::vec3(0.0f));
+        triangleShader1.setVec3("scalar", scalar);
+        triangleShader1.setBool("isHead", false);
 
         glBindTexture(GL_TEXTURE_2D, cellTexture);
         glBindVertexArray(VAO1);
         glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr, gridCols * gridRows);
 
         // --- DIBUJAR CABEZA DE LA SERPIENTE ---
-        triangleShader1.setVec3("cordMove", cordsMovement); // posición de la cabeza
+        triangleShader1.setVec3("cordMove", cordsMovement);
         triangleShader1.setVec3("scalar", scalar);
+        triangleShader1.setBool("isHead", true);
 
-        glBindTexture(GL_TEXTURE_2D, texture1); // textura de la cabeza
+        glBindTexture(GL_TEXTURE_2D, texture1);
         glDrawElements(GL_TRIANGLES, sizeof(triangleIndices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
 
         glfwSwapBuffers(window);
@@ -187,40 +192,37 @@ int main() {
     return 0;
 }
 
-void processInput(GLFWwindow *window, const float deltaTime) {
-    constexpr float baseSpeed{ 1.0f };
-    const float speed{ baseSpeed * deltaTime };
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
+void processInput(GLFWwindow *window, const float deltaTime, const Shader shader) {
+    static glm::vec2 currentDirection(0.0f, 0.0f);
+    static float moveTimer       = 0.0f;
+    constexpr float moveInterval = 0.2f;
+
+    // Capturar nueva dirección (solo si no es opuesta a la actual)
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS && currentDirection.y != -1.0f) {
+        currentDirection = glm::vec2(0.0f, 1.0f);
+    }
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS && currentDirection.y != 1.0f) {
+        currentDirection = glm::vec2(0.0f, -1.0f);
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS && currentDirection.x != 1.0f) {
+        currentDirection = glm::vec2(-1.0f, 0.0f);
+    }
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS && currentDirection.x != -1.0f) {
+        currentDirection = glm::vec2(1.0f, 0.0f);
     }
 
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        cordsMovement.y += speed;
-        if (cordsMovement.y >= cellSize) {
-            cordsMovement.y = cellSize;
-        }
+    moveTimer += deltaTime;
+    if (moveTimer >= moveInterval && (currentDirection.x != 0 || currentDirection.y != 0)) {
+        cordsMovement.x += currentDirection.x * cellStep;
+        cordsMovement.y += currentDirection.y * cellStep;
+        moveTimer = 0.0f;
+
+        shader.use();
+        shader.setVec2("direction", currentDirection);
     }
 
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        cordsMovement.y -= speed;
-        if (cordsMovement.y <= 0.0f) {
-            cordsMovement.y = 0.0f;
-        }
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        cordsMovement.x -= speed;
-        if (cordsMovement.x <= 0.0f) {
-            cordsMovement.x = 0.0f;
-        }
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-        cordsMovement.x += speed;
-        if (cordsMovement.x >= cellSize) {
-            cordsMovement.x = cellSize;
-        }
-    }
+    cordsMovement.x = glm::clamp(cordsMovement.x, 0.0f, cellTotalSize);
+    cordsMovement.y = glm::clamp(cordsMovement.y, 0.0f, cellTotalSize);
 }
 
 void framebuffer_size_callback(GLFWwindow *window, const int width, const int height) {
@@ -228,14 +230,14 @@ void framebuffer_size_callback(GLFWwindow *window, const int width, const int he
 }
 
 unsigned int loadTexture(const char *path, const bool flipVertically) {
-    unsigned int textureID{};
+    unsigned int textureID{ };
     glGenTextures(1, &textureID);
 
     if (flipVertically) {
         stbi_set_flip_vertically_on_load(true);
     }
 
-    int width{}, height{}, nrChannels{};
+    int width{ }, height{ }, nrChannels{ };
     unsigned char *data = stbi_load(path, &width, &height, &nrChannels, 0);
     if (data) {
         unsigned int format;
