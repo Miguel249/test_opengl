@@ -17,6 +17,8 @@ include_directories(
 set(SOURCES
         "main.cpp"
         "external/glad/src/glad.c"
+        "src/renderer/Shader.cpp"
+        "src/renderer/Mesh.cpp"
 )
 
 add_executable(test_opengl ${SOURCES})

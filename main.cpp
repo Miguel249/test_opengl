@@ -1,9 +1,10 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <renderer/Shader.cpp>
+#include <renderer/Shader.hpp>
 #include <iostream>
 #include <glm.hpp>
 #include <gtc/type_ptr.hpp>
+#include "renderer/Mesh.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 #include <chrono>
 #include <stb_image.h>
@@ -58,9 +59,6 @@ int main() {
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
     std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
-    // glEnable(GL_BLEND);
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
     const std::string shadersDir = SHADERS_DIR;
     const Shader triangleShader1((shadersDir + "/triangle.vert").c_str(),
                                  (shadersDir + "/color1.frag").c_str());
@@ -75,7 +73,7 @@ int main() {
         0.5f, 0.5f, 0.0f, 0.8515625f, 1.0f    // V4
     };
 
-    constexpr int triangleIndices[] = {
+    GLuint triangleIndices[] = {
         0, 1, 2,
         2, 3, 0
     };
@@ -99,39 +97,25 @@ int main() {
         }
     }
 
-    unsigned int VAO1{ };
-    unsigned int VBO1{ };
-    unsigned int instanceVBO{ };
-    unsigned int EBO1{ };
+    const std::vector<VertexAttribute> attributes {
+        {0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0, 0},
+        {1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float), 0}
+    };
 
-    glGenVertexArrays(1, &VAO1);
-    glGenBuffers(1, &VBO1);
-    glGenBuffers(1, &instanceVBO);
-    glGenBuffers(1, &EBO1);
+    const std::vector<VertexAttribute> instanceAttributes {
+        {2, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0, 1},
+    };
 
-    glBindVertexArray(VAO1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(gridOffsets.size() * sizeof(glm::vec3)), gridOffsets.data(),
-                 GL_STATIC_DRAW);
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), static_cast<void *>(nullptr));
-    glVertexAttribDivisor(2, 1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO1);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO1);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangleIndices), triangleIndices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), static_cast<void *>(nullptr));
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void *>(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
+    const Mesh triangleMesh{
+        triangleVertices,
+        sizeof(triangleVertices),
+        attributes,
+        triangleIndices,
+        sizeof(triangleIndices),
+        gridOffsets.data(),
+        static_cast<GLsizeiptr>(gridOffsets.size() * sizeof(glm::vec3)),
+        instanceAttributes
+    };
 
     const std::string assetsDir = ASSETS_DIR;
     const unsigned int texture1{ loadTexture((assetsDir + "/textures/snake_head.png").c_str()) };
@@ -152,7 +136,7 @@ int main() {
     //render loop
     while (!glfwWindowShouldClose(window)) {
         auto currentTime = std::chrono::high_resolution_clock::now();
-        float deltaTime  = std::chrono::duration<float>(currentTime - lastTime).count();
+        const float deltaTime  = std::chrono::duration<float>(currentTime - lastTime).count();
         lastTime         = currentTime;
 
         processInput(window, deltaTime, triangleShader1);
@@ -168,8 +152,9 @@ int main() {
         triangleShader1.setBool("isHead", false);
 
         glBindTexture(GL_TEXTURE_2D, cellTexture);
-        glBindVertexArray(VAO1);
-        glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr, gridCols * gridRows);
+
+        triangleMesh.bind();
+        glDrawElementsInstanced(GL_TRIANGLES, sizeof(triangleIndices) / sizeof(int), GL_UNSIGNED_INT, nullptr, gridCols * gridRows);
 
         // --- DIBUJAR CABEZA DE LA SERPIENTE ---
         triangleShader1.setVec3("cordMove", cordsMovement);
@@ -184,20 +169,15 @@ int main() {
         glfwWaitEventsTimeout(targetFrameTime);
     }
 
-    glDeleteVertexArrays(1, &VAO1);
-    glDeleteBuffers(1, &VBO1);
-    glDeleteBuffers(1, &EBO1);
-
     glfwTerminate();
+    std::cout << "Saliendo del programa..." << std::endl;
     return 0;
 }
 
 void processInput(GLFWwindow *window, const float deltaTime, const Shader shader) {
     static glm::vec2 currentDirection(0.0f, 0.0f);
     static float moveTimer       = 0.0f;
-    constexpr float moveInterval = 0.2f;
 
-    // Capturar nueva dirección (solo si no es opuesta a la actual)
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS && currentDirection.y != -1.0f) {
         currentDirection = glm::vec2(0.0f, 1.0f);
     }
@@ -212,7 +192,7 @@ void processInput(GLFWwindow *window, const float deltaTime, const Shader shader
     }
 
     moveTimer += deltaTime;
-    if (moveTimer >= moveInterval && (currentDirection.x != 0 || currentDirection.y != 0)) {
+    if (constexpr float moveInterval = 0.2f; moveTimer >= moveInterval && (currentDirection.x != 0 || currentDirection.y != 0)) {
         cordsMovement.x += currentDirection.x * cellStep;
         cordsMovement.y += currentDirection.y * cellStep;
         moveTimer = 0.0f;
