@@ -27,6 +27,12 @@ public:
 
     ~Mesh();
 
+    Mesh(const Mesh&) = delete;
+    Mesh& operator=(const Mesh&) = delete;
+
+    Mesh(Mesh&& other) noexcept;
+    Mesh& operator=(Mesh&& other) noexcept;
+
     void bind() const;
 
     static void unbind();

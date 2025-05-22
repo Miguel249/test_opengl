@@ -9,7 +9,6 @@ Mesh::Mesh(const void *vertexData,
            const GLsizeiptr instanceSize,
            const std::vector<VertexAttribute> &instanceAttributes)
     : m_VAO(0), m_VBO(0), m_EBO(0), m_instanceVBO(0) {
-
     glGenVertexArrays(1, &m_VAO);
     glBindVertexArray(m_VAO);
 
@@ -19,7 +18,6 @@ Mesh::Mesh(const void *vertexData,
     glBufferData(GL_ARRAY_BUFFER, vertexSize, vertexData, GL_STATIC_DRAW);
 
     for (const auto &[index, size, type, normalized, stride, offset, divisor]: vertexAttributes) {
-
         glVertexAttribPointer(index, size, type, normalized, stride,
                               reinterpret_cast<void *>(offset));
         glEnableVertexAttribArray(index);
@@ -63,6 +61,41 @@ Mesh::~Mesh() {
         glDeleteBuffers(1, &m_EBO);
     if (m_hasInstance)
         glDeleteBuffers(1, &m_instanceVBO);
+}
+
+Mesh::Mesh(Mesh &&other) noexcept
+    : m_VAO(other.m_VAO),
+      m_VBO(other.m_VBO),
+      m_EBO(other.m_EBO),
+      m_instanceVBO(other.m_instanceVBO),
+      m_hasEBO(other.m_hasEBO),
+      m_hasInstance(other.m_hasInstance) {
+    other.m_VAO = 0;
+    other.m_VBO = 0;
+    other.m_EBO = 0;
+    other.m_instanceVBO = 0;
+    other.m_hasEBO = false;
+    other.m_hasInstance = false;
+}
+
+Mesh &Mesh::operator=(Mesh &&other) noexcept {
+    if (this != &other) {
+        glDeleteVertexArrays(1, &m_VAO);
+        glDeleteBuffers(1, &m_VBO);
+        if (m_hasEBO)
+            glDeleteBuffers(1, &m_EBO);
+        if (m_hasInstance)
+            glDeleteBuffers(1, &m_instanceVBO);
+
+        other.m_VAO = 0;
+        other.m_VBO = 0;
+        other.m_EBO = 0;
+        other.m_instanceVBO = 0;
+        other.m_hasEBO = false;
+        other.m_hasInstance = false;
+    }
+
+    return *this;
 }
 
 void Mesh::bind() const {

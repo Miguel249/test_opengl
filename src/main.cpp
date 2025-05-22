@@ -170,7 +170,6 @@ int main() {
     }
 
     glfwTerminate();
-    std::cout << "Saliendo del programa..." << std::endl;
     return 0;
 }
 

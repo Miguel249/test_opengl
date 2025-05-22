@@ -5,11 +5,15 @@
 
 class Shader {
 public:
-    unsigned int ID;
-
     Shader(const char *vertexPath, const char *fragmentPath);
 
     ~Shader();
+
+    Shader(const Shader&) = delete;
+    Shader& operator=(const Shader&) = delete;
+
+    Shader(Shader&& other) noexcept;
+    Shader& operator=(Shader&& other) noexcept;
 
     void use() const;
 
@@ -26,5 +30,7 @@ public:
     void setVec2(const std::string& name, const glm::vec2& value) const;
 
 private:
+    unsigned int m_programId;
+
     static void checkCompileErrors(unsigned int shader, const std::string &type);
 };
