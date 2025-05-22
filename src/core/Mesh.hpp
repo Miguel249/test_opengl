@@ -19,11 +19,11 @@ public:
         const void *vertexData,
         GLsizeiptr vertexSize,
         const std::vector<VertexAttribute> &vertexAttributes,
-        const GLuint * indices = nullptr,
+        const GLuint *indices = nullptr,
         GLsizeiptr indexSize = 0,
         const void *instanceData = nullptr,
         GLsizeiptr instanceSize = 0,
-        const std::vector<VertexAttribute>& instanceAttributes = {});
+        const std::vector<VertexAttribute> &instanceAttributes = {});
 
     ~Mesh();
 
@@ -31,7 +31,7 @@ public:
 
     static void unbind();
 
-    [[nodiscard]] GLuint getVAO() const {return m_VAO;};
+    [[nodiscard]] GLuint getVAO() const { return m_VAO; };
 
 private:
     GLuint m_VAO;

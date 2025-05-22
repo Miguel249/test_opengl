@@ -1,31 +1,42 @@
 cmake_minimum_required(VERSION 3.31)
-project(test_opengl)
+project(test_opengl VERSION 0.0.1)
 
-set(CMAKE_CXX_STANDARD 26)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Buscar paquetes
+find_package(OpenGL REQUIRED)
+
+# Agregar subdirectorios de librerías externas
 add_subdirectory(external/glfw)
+add_library(glad external/glad/src/glad.c)
+target_include_directories(glad PUBLIC external/glad/include)
 
-include_directories(
+# Definir ejecutable
+file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.hpp")
+add_executable(${PROJECT_NAME} ${SOURCES})
+
+# Incluir directorios
+target_include_directories(${PROJECT_NAME} PRIVATE
+        src/
         external/glad/include
         external/glfw/include
         external/glm
         external/stb
-        include
-        src
 )
 
-set(SOURCES
-        "main.cpp"
-        "external/glad/src/glad.c"
-        "src/renderer/Shader.cpp"
-        "src/renderer/Mesh.cpp"
+# Linkear librerías
+target_link_libraries(${PROJECT_NAME}
+        OpenGL::GL
+        glfw
+        glad
 )
 
-add_executable(test_opengl ${SOURCES})
-target_link_libraries(test_opengl glfw ${CMAKE_DL_LIBS})
+# Copiar recursos al directorio de build
+file(COPY resources DESTINATION ${CMAKE_BINARY_DIR})
+
 
 target_compile_definitions(test_opengl PRIVATE
         SOURCE_DIR="${CMAKE_SOURCE_DIR}/src"
-        ASSETS_DIR="${CMAKE_SOURCE_DIR}/assets"
-        SHADERS_DIR="${CMAKE_SOURCE_DIR}/shaders"
+        RESOURCES_DIR="${CMAKE_SOURCE_DIR}/resources"
 )

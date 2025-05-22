@@ -1,17 +1,17 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <renderer/Shader.hpp>
 #include <iostream>
 #include <glm.hpp>
 #include <gtc/type_ptr.hpp>
-#include "renderer/Mesh.hpp"
+#include <core/Shader.hpp>
+#include <core/Mesh.hpp>
 #define STB_IMAGE_IMPLEMENTATION
-#include <chrono>
 #include <stb_image.h>
+#include <chrono>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
-void processInput(GLFWwindow *window, float deltaTime, Shader shader);
+void processInput(GLFWwindow *window, float deltaTime, const Shader &shader);
 
 GLuint loadTexture(const char *path, bool flipVertically = true);
 
@@ -25,8 +25,8 @@ auto lastTime = std::chrono::high_resolution_clock::now();
 
 glm::vec3 cordsMovement{ 0.0f, 0.0f, 0.0f };
 
-float cellTotalSize{ };
-float cellStep{ };
+float cellTotalSize{};
+float cellStep{};
 
 int main() {
     if (!glfwInit()) {
@@ -59,18 +59,18 @@ int main() {
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
     std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
-    const std::string shadersDir = SHADERS_DIR;
-    const Shader triangleShader1((shadersDir + "/triangle.vert").c_str(),
-                                 (shadersDir + "/color1.frag").c_str());
+    const std::string resourcesDir = RESOURCES_DIR;
+    const Shader triangleShader1((resourcesDir + "/shaders/triangle.vert").c_str(),
+                                 (resourcesDir + "/shaders/color1.frag").c_str());
 
     constexpr glm::vec3 scalar{ 0.2f, 0.2f, 1.0f };
 
     constexpr float triangleVertices[] = {
         // Positions     //Texture Coords
-        0.5f, -0.5f, 0.0f, 0.8515625f, 0.0f,  // V1
+        0.5f, -0.5f, 0.0f, 0.8515625f, 0.0f, // V1
         -0.5f, -0.5f, 0.0f, 0.1484375f, 0.0f, // V2
-        -0.5f, 0.5f, 0.0f, 0.1484375f, 1.0f,  // V3
-        0.5f, 0.5f, 0.0f, 0.8515625f, 1.0f    // V4
+        -0.5f, 0.5f, 0.0f, 0.1484375f, 1.0f, // V3
+        0.5f, 0.5f, 0.0f, 0.8515625f, 1.0f // V4
     };
 
     GLuint triangleIndices[] = {
@@ -97,13 +97,13 @@ int main() {
         }
     }
 
-    const std::vector<VertexAttribute> attributes {
-        {0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0, 0},
-        {1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float), 0}
+    const std::vector<VertexAttribute> attributes{
+        { 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0, 0 },
+        { 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float), 0 }
     };
 
-    const std::vector<VertexAttribute> instanceAttributes {
-        {2, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0, 1},
+    const std::vector<VertexAttribute> instanceAttributes{
+        { 2, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0, 1 },
     };
 
     const Mesh triangleMesh{
@@ -117,9 +117,8 @@ int main() {
         instanceAttributes
     };
 
-    const std::string assetsDir = ASSETS_DIR;
-    const unsigned int texture1{ loadTexture((assetsDir + "/textures/snake_head.png").c_str()) };
-    const unsigned int cellTexture{ loadTexture((assetsDir + "/textures/snake_cell.png").c_str()) };
+    const unsigned int texture1{ loadTexture((resourcesDir + "/textures/snake_head.png").c_str()) };
+    const unsigned int cellTexture{ loadTexture((resourcesDir + "/textures/snake_cell.png").c_str()) };
 
     triangleShader1.use();
 
@@ -127,17 +126,17 @@ int main() {
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    GLFWmonitor *monitor    = glfwGetPrimaryMonitor();
+    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode *mode = glfwGetVideoMode(monitor);
-    const int refreshRate   = mode->refreshRate;
+    const int refreshRate = mode->refreshRate;
 
     const double targetFrameTime = 1.0 / refreshRate;
 
     //render loop
     while (!glfwWindowShouldClose(window)) {
         auto currentTime = std::chrono::high_resolution_clock::now();
-        const float deltaTime  = std::chrono::duration<float>(currentTime - lastTime).count();
-        lastTime         = currentTime;
+        const float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
+        lastTime = currentTime;
 
         processInput(window, deltaTime, triangleShader1);
 
@@ -154,7 +153,8 @@ int main() {
         glBindTexture(GL_TEXTURE_2D, cellTexture);
 
         triangleMesh.bind();
-        glDrawElementsInstanced(GL_TRIANGLES, sizeof(triangleIndices) / sizeof(int), GL_UNSIGNED_INT, nullptr, gridCols * gridRows);
+        glDrawElementsInstanced(GL_TRIANGLES, sizeof(triangleIndices) / sizeof(int), GL_UNSIGNED_INT, nullptr,
+                                gridCols * gridRows);
 
         // --- DIBUJAR CABEZA DE LA SERPIENTE ---
         triangleShader1.setVec3("cordMove", cordsMovement);
@@ -174,9 +174,9 @@ int main() {
     return 0;
 }
 
-void processInput(GLFWwindow *window, const float deltaTime, const Shader shader) {
+void processInput(GLFWwindow *window, const float deltaTime, const Shader &shader) {
     static glm::vec2 currentDirection(0.0f, 0.0f);
-    static float moveTimer       = 0.0f;
+    static float moveTimer = 0.0f;
 
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS && currentDirection.y != -1.0f) {
         currentDirection = glm::vec2(0.0f, 1.0f);
@@ -192,7 +192,8 @@ void processInput(GLFWwindow *window, const float deltaTime, const Shader shader
     }
 
     moveTimer += deltaTime;
-    if (constexpr float moveInterval = 0.2f; moveTimer >= moveInterval && (currentDirection.x != 0 || currentDirection.y != 0)) {
+    if (constexpr float moveInterval = 0.2f; moveTimer >= moveInterval && (
+                                                 currentDirection.x != 0 || currentDirection.y != 0)) {
         cordsMovement.x += currentDirection.x * cellStep;
         cordsMovement.y += currentDirection.y * cellStep;
         moveTimer = 0.0f;
@@ -210,14 +211,14 @@ void framebuffer_size_callback(GLFWwindow *window, const int width, const int he
 }
 
 unsigned int loadTexture(const char *path, const bool flipVertically) {
-    unsigned int textureID{ };
+    unsigned int textureID{};
     glGenTextures(1, &textureID);
 
     if (flipVertically) {
         stbi_set_flip_vertically_on_load(true);
     }
 
-    int width{ }, height{ }, nrChannels{ };
+    int width{}, height{}, nrChannels{};
     unsigned char *data = stbi_load(path, &width, &height, &nrChannels, 0);
     if (data) {
         unsigned int format;

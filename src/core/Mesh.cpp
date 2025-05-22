@@ -1,6 +1,4 @@
-#include  "renderer/Mesh.hpp"
-
-#include <iostream>
+#include "Mesh.hpp"
 
 Mesh::Mesh(const void *vertexData,
            const GLsizeiptr vertexSize,
