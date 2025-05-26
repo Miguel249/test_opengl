@@ -21,6 +21,7 @@ public:
 private:
     std::unique_ptr<Shader> shader;
     std::unique_ptr<Mesh> mesh;
+    std::unique_ptr<Mesh> snakeMesh;
 
     GLuint snakeHeadTexture;
     GLuint cellTexture;
@@ -41,4 +42,5 @@ private:
 
     static GLuint loadTexture(const std::string& path, bool flipVertically = true);
     void setupMesh(const Grid& grid);
+    void setupSnakeMesh();
 };

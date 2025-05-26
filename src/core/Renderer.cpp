@@ -28,6 +28,8 @@ bool Renderer::initialize(const std::string& resourcesDir, const Grid& grid) {
     
     // Setup mesh
     setupMesh(grid);
+
+    setupSnakeMesh();
     
     // Configure shader
     shader->use();
@@ -55,6 +57,21 @@ void Renderer::setupMesh(const Grid& grid) {
         grid.getOffsets().data(),
         static_cast<GLsizeiptr>(grid.getOffsets().size() * sizeof(glm::vec3)),
         instanceAttributes
+    );
+}
+
+void Renderer::setupSnakeMesh() {
+    const std::vector<VertexAttribute> attributes{
+            { 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0, 0 },
+            { 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float), 0 }
+    };
+
+    snakeMesh = std::make_unique<Mesh>(
+        quadVertices,
+        sizeof(quadVertices),
+        attributes,
+        quadIndices,
+        sizeof(quadIndices)
     );
 }
 
@@ -105,7 +122,8 @@ void Renderer::renderSnake(const Snake& snake, const Grid& grid) const {
             }
             shader->setVec2("direction", dirVec);
         }
-        
+
+        snakeMesh->bind();
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
     }
 }

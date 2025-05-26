@@ -1,5 +1,7 @@
 #include "Snake.hpp"
 
+#include <iostream>
+
 Snake::Snake(const int cols, const int rows)
     : currentDirection(Direction::NONE), nextDirection(Direction::NONE), moveTimer(0.0f),
       gridCols(cols), gridRows(rows) {
@@ -47,7 +49,8 @@ void Snake::grow() {
 void Snake::reset() {
     body.clear();
     // Start at center of grid
-    body.emplace_back(gridCols / 2, gridRows / 2);
+    glm::vec2 centerPos(gridCols / 2, gridRows / 2);
+    body.emplace_back(centerPos);
     currentDirection = Direction::NONE;
     nextDirection = Direction::NONE;
     moveTimer = 0.0f;
