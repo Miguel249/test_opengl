@@ -23,14 +23,14 @@ public:
     void reset();
 
     // Getters
-    const std::vector<glm::vec2> &getBody() const { return body; }
-    glm::vec2 getHeadPosition() const { return body.empty() ? glm::vec2(0) : body[0]; }
-    Direction getCurrentDirection() const { return currentDirection; }
+    [[nodiscard]] const std::vector<glm::vec2> &getBody() const { return body; }
+    [[nodiscard]] glm::vec2 getHeadPosition() const { return body.empty() ? glm::vec2(0) : body[0]; }
+    [[nodiscard]] Direction getCurrentDirection() const { return currentDirection; }
 
     // Game logic
-    bool checkSelfCollision() const;
+    [[nodiscard]] bool checkSelfCollision() const;
 
-    bool isOutOfBounds() const;
+    [[nodiscard]] bool isOutOfBounds() const;
 
 private:
     std::vector<glm::vec2> body; // Posiciones en coordenadas de grid

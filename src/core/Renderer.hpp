@@ -24,6 +24,9 @@ private:
     std::unique_ptr<Mesh> snakeMesh;
 
     GLuint snakeHeadTexture;
+    GLuint snakeBodyTexture;
+    GLuint snakeBodyTurnTexture;
+    GLuint snakeTailTexture;
     GLuint cellTexture;
 
     // Quad data

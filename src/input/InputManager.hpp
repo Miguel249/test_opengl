@@ -9,9 +9,9 @@ public:
     explicit InputManager(GLFWwindow* win);
 
     void processInput(Snake& snake) const;
-    bool shouldClose() const;
+    [[nodiscard]] bool shouldClose() const;
 
 private:
     GLFWwindow* window;
-    Direction getDirectionFromInput() const;
+    [[nodiscard]] Direction getDirectionFromInput() const;
 };
