@@ -3,8 +3,8 @@
 #include <iostream>
 
 Snake::Snake(const int cols, const int rows)
-    : currentDirection(Direction::NONE), nextDirection(Direction::NONE), moveTimer(0.0f),
-      gridCols(cols), gridRows(rows) {
+    : currentDirection(Direction::NONE), nextDirection(Direction::NONE), directionChanged(false),
+      moveTimer(0.0f), gridCols(cols), gridRows(rows) {
     reset();
 }
 
@@ -15,13 +15,18 @@ void Snake::update(const float deltaTime) {
         currentDirection = nextDirection;
         move();
         moveTimer = 0.0f;
+        directionChanged = false;
     }
+
 }
 
 void Snake::setDirection(const Direction newDirection) {
+    if (directionChanged) return;
+
     if (newDirection != Direction::NONE &&
         !isOppositeDirection(currentDirection, newDirection)) {
         nextDirection = newDirection;
+        directionChanged = true;
     }
 }
 
@@ -50,7 +55,15 @@ void Snake::reset() {
     body.clear();
     // Start at center of grid
     glm::vec2 centerPos(gridCols / 2, gridRows / 2);
+    glm::vec2 center2Pos(gridCols / 2, gridRows / 2 - 1);
+    glm::vec2 center3Pos(gridCols / 2, gridRows / 2 - 2);
+    // glm::vec2 center4Pos(gridCols / 2, gridRows / 2 - 3);
+    // glm::vec2 center5Pos(gridCols / 2, gridRows / 2 - 4);
     body.emplace_back(centerPos);
+    body.emplace_back(center2Pos);
+    body.emplace_back(center3Pos);
+    // body.emplace_back(center4Pos);
+    // body.emplace_back(center5Pos);
     currentDirection = Direction::NONE;
     nextDirection = Direction::NONE;
     moveTimer = 0.0f;
@@ -85,10 +98,10 @@ bool Snake::isOppositeDirection(const Direction dir1, const Direction dir2) {
 
 glm::vec2 Snake::getMovementVector(const Direction dir) {
     switch (dir) {
-        case Direction::UP: return {0, 1};
-        case Direction::DOWN: return {0, -1};
-        case Direction::LEFT: return {-1, 0};
-        case Direction::RIGHT: return {1, 0};
-        default: return {0, 0};
+        case Direction::UP: return { 0, 1 };
+        case Direction::DOWN: return { 0, -1 };
+        case Direction::LEFT: return { -1, 0 };
+        case Direction::RIGHT: return { 1, 0 };
+        default: return { 0, 0 };
     }
 }

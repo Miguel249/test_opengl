@@ -2,26 +2,41 @@
 #include <core/Mesh.hpp>
 #include <core/Shader.hpp>
 #include <memory>
+#include <queue>
+
 #include "game/Grid.hpp"
 #include "game/Snake.hpp"
 
 class Renderer {
 public:
     Renderer();
+
     ~Renderer();
-    
-    bool initialize(const std::string& resourcesDir, const Grid& grid);
-    void renderGrid(const Grid& grid) const;
-    void renderSnake(const Snake& snake, const Grid& grid) const;
+
+    bool initialize(const std::string &resourcesDir, const Grid &grid);
+
+    void renderGrid(const Grid &grid) const;
+
+    void renderSnake(const Snake &snake, const Grid &grid);
 
     static void clear();
 
     static void setViewport(int width, int height);
-    
+
 private:
+    struct TurnInfo {
+        glm::vec2 position;
+        Direction fromDir;
+        Direction toDir;
+    };
+
     std::unique_ptr<Shader> shader;
     std::unique_ptr<Mesh> mesh;
     std::unique_ptr<Mesh> snakeMesh;
+
+    TurnInfo turnInfo{};
+    std::queue<TurnInfo> turnPositionsQueue{};
+    Direction headLastDir{Direction::NONE};
 
     GLuint snakeHeadTexture;
     GLuint snakeBodyTexture;
@@ -43,7 +58,9 @@ private:
         2, 3, 0
     };
 
-    static GLuint loadTexture(const std::string& path, bool flipVertically = true);
-    void setupMesh(const Grid& grid);
+    static GLuint loadTexture(const std::string &path, bool flipVertically = true);
+
+    void setupMesh(const Grid &grid);
+
     void setupSnakeMesh();
 };

@@ -14,6 +14,8 @@ Renderer::~Renderer() {
         glDeleteTextures(1, &snakeBodyTexture);
     if (snakeBodyTurnTexture)
         glDeleteTextures(1, &snakeBodyTurnTexture);
+    if (snakeTailTexture)
+        glDeleteTextures(1, &snakeTailTexture);
     if (cellTexture)
         glDeleteTextures(1, &cellTexture);
 }
@@ -27,9 +29,12 @@ bool Renderer::initialize(const std::string &resourcesDir, const Grid &grid) {
 
     // Load textures
     snakeHeadTexture = loadTexture(resourcesDir + "/textures/snake_head.png");
+    snakeBodyTexture = loadTexture(resourcesDir + "/textures/snake_body.png");
+    snakeBodyTurnTexture = loadTexture(resourcesDir + "/textures/snake_body_turn.png");
+    snakeTailTexture = loadTexture(resourcesDir + "/textures/snake_tail.png");
     cellTexture = loadTexture(resourcesDir + "/textures/snake_cell.png");
 
-    if (!snakeHeadTexture || !cellTexture) {
+    if (!snakeHeadTexture || !cellTexture || !snakeBodyTexture || !snakeBodyTurnTexture) {
         std::cerr << "Failed to load textures" << std::endl;
         return false;
     }
@@ -101,20 +106,86 @@ void Renderer::renderGrid(const Grid &grid) const {
                             grid.getCols() * grid.getRows());
 }
 
-void Renderer::renderSnake(const Snake &snake, const Grid &grid) const {
+void Renderer::renderSnake(const Snake &snake, const Grid &grid) {
     shader->use();
     shader->setVec3("scalar", grid.getCellScale());
 
     const auto &body = snake.getBody();
 
+    // Detectar nuevo giro y guardarlo
+    const Direction headCurrentDir = snake.getCurrentDirection();
+    // std::cout << "Head current dir: " << static_cast<int>(headCurrentDir) << std::endl;
+    // std::cout << "Head last dir: " << static_cast<int>(headLastDir) << std::endl;
+    if (headCurrentDir != Direction::NONE) {
+        if (headLastDir != headCurrentDir) {
+            // Guardar la posición donde ocurrió el giro
+            // std::cout << "Entro" << std::endl;
+            turnInfo.position = snake.getHeadPosition();
+            turnInfo.fromDir = headLastDir;
+            turnInfo.toDir = headCurrentDir;
+            turnPositionsQueue.push(turnInfo);
+
+            headLastDir = headCurrentDir;
+        }
+    }else {
+        headLastDir = Direction::NONE;
+    }
+
     for (size_t i = 0; i < body.size(); ++i) {
         glm::vec3 worldPos = grid.gridToWorldPosition(body[i]);
+        const glm::vec2 bodyPos = body[i];
         shader->setVec3("cordMove", worldPos);
 
         const bool isHead = (i == 0);
-        shader->setBool("isHead", isHead);
+        bool isTurn = false;
 
-        const GLuint texture = isHead ? snakeHeadTexture : cellTexture;
+        // Para segmentos del cuerpo (no la cabeza)
+        if (!isHead && i < body.size() - 1 && !turnPositionsQueue.empty()) {
+            // std::queue<TurnInfo> tempQueue = turnPositionsQueue;
+            const TurnInfo &turnInfo = turnPositionsQueue.front();
+            if (bodyPos == turnInfo.position ) {
+                isTurn = true;
+                // break;
+            }
+            // while (!turnPositionsQueue.empty()) {
+            //     // tempQueue.pop();
+            // }
+        } else if (i == body.size() - 1 && !turnPositionsQueue.empty()) {
+            while (!turnPositionsQueue.empty()) {
+                const TurnInfo &frontTurn = turnPositionsQueue.front();
+                if (body.back() == frontTurn.position) {
+                    std::cout << "Borro" << std::endl;
+                    turnPositionsQueue.pop();
+                } else {
+                    break;
+                }
+            }
+        }
+
+        // Limpiar giros que ya pasaron la cola
+        // while (!turnPositionsQueue.empty()) {
+        //     const TurnInfo &frontTurn = turnPositionsQueue.front();
+        //     const glm::vec2 &tailPos = body.back();
+        //
+        //     if (tailPos.x == frontTurn.position.x && tailPos.y == frontTurn.position.y) {
+        //         turnPositionsQueue.pop();
+        //     }else {
+        //         break;
+        //     }
+        // }
+
+        GLuint texture{};
+        if (isHead) {
+            shader->setBool("rotated", true);
+            texture = snakeHeadTexture;
+        } else if (body.size() - 1 == i) {
+            shader->setBool("rotated", isTurn);
+            texture = snakeTailTexture;
+        } else {
+            shader->setBool("rotated", isTurn);
+            texture = snakeBodyTexture;
+        }
+
         glBindTexture(GL_TEXTURE_2D, texture);
 
         // Set direction for head rotation if needed
@@ -122,15 +193,20 @@ void Renderer::renderSnake(const Snake &snake, const Grid &grid) const {
             const Direction dir = snake.getCurrentDirection();
             glm::vec2 dirVec(0.0f);
             switch (dir) {
-                case Direction::UP: dirVec = glm::vec2(0, 1);
+                case Direction::UP:
+                    dirVec = glm::vec2(0, 1);
                     break;
-                case Direction::DOWN: dirVec = glm::vec2(0, -1);
+                case Direction::DOWN:
+                    dirVec = glm::vec2(0, -1);
                     break;
-                case Direction::LEFT: dirVec = glm::vec2(-1, 0);
+                case Direction::LEFT:
+                    dirVec = glm::vec2(-1, 0);
                     break;
-                case Direction::RIGHT: dirVec = glm::vec2(1, 0);
+                case Direction::RIGHT:
+                    dirVec = glm::vec2(1, 0);
                     break;
-                default: break;
+                default:
+                    break;
             }
             shader->setVec2("direction", dirVec);
         }

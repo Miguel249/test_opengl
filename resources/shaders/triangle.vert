@@ -7,7 +7,7 @@ out vec2 TexCoord;
 uniform vec3 cordMove = vec3(0.0, 0.0, 0.0);
 uniform vec3 scalar = vec3(1.0, 1.0, 1.0);
 uniform vec2 direction = vec2(0.0, 1.0);
-uniform bool isHead = false;
+uniform bool rotated = false;
 
 mat4 rotate2D(float angle);
 mat4 translateF(vec3 scalar);
@@ -16,7 +16,7 @@ mat4 scaleF(vec3 scale);
 void main()
 {
     float angle = 0.0;
-    if (isHead) {
+    if (rotated) {
         angle = atan(direction.y, -direction.x) - radians(90.0);
     }
     mat4 translate = translateF(aOffset + cordMove);

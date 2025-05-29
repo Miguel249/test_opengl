@@ -32,6 +32,7 @@ public:
 
     [[nodiscard]] bool isOutOfBounds() const;
 
+    mutable bool directionChanged;
 private:
     std::vector<glm::vec2> body; // Posiciones en coordenadas de grid
     Direction currentDirection;
