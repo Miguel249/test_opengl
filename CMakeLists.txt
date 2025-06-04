@@ -12,8 +12,19 @@ add_subdirectory(external/glfw)
 add_library(glad external/glad/src/glad.c)
 target_include_directories(glad PUBLIC external/glad/include)
 
-# Definir ejecutable
-file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.hpp")
+# Definir archivos fuente manualmente
+set(SOURCES
+        src/main.cpp
+        src/core/Mesh.cpp
+        src/core/Renderer.cpp
+        src/core/Shader.cpp
+        src/game/Game.cpp
+        src/game/Grid.cpp
+        src/game/Snake.cpp
+        src/game/Food.cpp      # ← Asegúrate de que este esté incluido
+        src/input/InputManager.cpp
+)
+
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 # Incluir directorios
@@ -32,9 +43,7 @@ target_link_libraries(${PROJECT_NAME}
         glad
 )
 
-# Copiar recursos al directorio de build
 file(COPY resources DESTINATION ${CMAKE_BINARY_DIR})
-
 
 target_compile_definitions(test_opengl PRIVATE
         SOURCE_DIR="${CMAKE_SOURCE_DIR}/src"
