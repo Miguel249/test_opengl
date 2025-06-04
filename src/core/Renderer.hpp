@@ -4,6 +4,7 @@
 #include <memory>
 #include <queue>
 
+#include "game/Food.hpp"
 #include "game/Grid.hpp"
 #include "game/Snake.hpp"
 
@@ -17,7 +18,9 @@ public:
 
     void renderGrid(const Grid &grid) const;
 
-    void renderSnake(const Snake &snake, const Grid &grid);
+    void renderSnake(const Snake &snake, const Grid &grid) const;
+
+    void renderFood(const Food &food, const Grid &grid) const;
 
     static void clear();
 
@@ -33,6 +36,7 @@ private:
     std::unique_ptr<Shader> shader;
     std::unique_ptr<Mesh> mesh;
     std::unique_ptr<Mesh> snakeMesh;
+    std::unique_ptr<Mesh> foodMesh;
 
     TurnInfo turnInfo{};
     std::queue<TurnInfo> turnPositionsQueue{};
@@ -63,4 +67,6 @@ private:
     void setupMesh(const Grid &grid);
 
     void setupSnakeMesh();
+
+    void setupFoodMesh();
 };

@@ -44,6 +44,8 @@ bool Renderer::initialize(const std::string &resourcesDir, const Grid &grid) {
 
     setupSnakeMesh();
 
+    setupFoodMesh();
+
     // Configure shader
     shader->use();
     shader->setInt("texture1", 0);
@@ -88,6 +90,21 @@ void Renderer::setupSnakeMesh() {
     );
 }
 
+void Renderer::setupFoodMesh() {
+    const std::vector<VertexAttribute> attributes{
+            { 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0, 0 },
+            { 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float), 0 }
+    };
+
+    foodMesh = std::make_unique<Mesh>(
+        quadVertices,
+        sizeof(quadVertices),
+        attributes,
+        quadIndices,
+        sizeof(quadIndices)
+    );
+}
+
 void Renderer::clear() {
     glClearColor(0.8f, 0.8f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -106,30 +123,12 @@ void Renderer::renderGrid(const Grid &grid) const {
                             grid.getCols() * grid.getRows());
 }
 
-void Renderer::renderSnake(const Snake &snake, const Grid &grid) {
+void Renderer::renderSnake(const Snake &snake, const Grid &grid) const {
     shader->use();
     shader->setVec3("scalar", grid.getCellScale());
 
     const auto &body = snake.getBody();
-
-    // Detectar nuevo giro y guardarlo
-    const Direction headCurrentDir = snake.getCurrentDirection();
-    // std::cout << "Head current dir: " << static_cast<int>(headCurrentDir) << std::endl;
-    // std::cout << "Head last dir: " << static_cast<int>(headLastDir) << std::endl;
-    if (headCurrentDir != Direction::NONE) {
-        if (headLastDir != headCurrentDir) {
-            // Guardar la posición donde ocurrió el giro
-            // std::cout << "Entro" << std::endl;
-            turnInfo.position = snake.getHeadPosition();
-            turnInfo.fromDir = headLastDir;
-            turnInfo.toDir = headCurrentDir;
-            turnPositionsQueue.push(turnInfo);
-
-            headLastDir = headCurrentDir;
-        }
-    }else {
-        headLastDir = Direction::NONE;
-    }
+    const auto &turnQueue = snake.getTurnQueue();
 
     for (size_t i = 0; i < body.size(); ++i) {
         glm::vec3 worldPos = grid.gridToWorldPosition(body[i]);
@@ -139,46 +138,23 @@ void Renderer::renderSnake(const Snake &snake, const Grid &grid) {
         const bool isHead = (i == 0);
         bool isTurn = false;
 
-        // Para segmentos del cuerpo (no la cabeza)
-        if (!isHead && i < body.size() - 1 && !turnPositionsQueue.empty()) {
-            // std::queue<TurnInfo> tempQueue = turnPositionsQueue;
-            const TurnInfo &turnInfo = turnPositionsQueue.front();
-            if (bodyPos == turnInfo.position ) {
+        if (!isHead && i < body.size() - 1 && !turnQueue.empty()) {
+            if (bodyPos == turnQueue.front().position) {
                 isTurn = true;
-                // break;
-            }
-            // while (!turnPositionsQueue.empty()) {
-            //     // tempQueue.pop();
-            // }
-        } else if (i == body.size() - 1 && !turnPositionsQueue.empty()) {
-            while (!turnPositionsQueue.empty()) {
-                const TurnInfo &frontTurn = turnPositionsQueue.front();
-                if (body.back() == frontTurn.position) {
-                    std::cout << "Borro" << std::endl;
-                    turnPositionsQueue.pop();
-                } else {
-                    break;
-                }
             }
         }
 
-        // Limpiar giros que ya pasaron la cola
-        // while (!turnPositionsQueue.empty()) {
-        //     const TurnInfo &frontTurn = turnPositionsQueue.front();
-        //     const glm::vec2 &tailPos = body.back();
-        //
-        //     if (tailPos.x == frontTurn.position.x && tailPos.y == frontTurn.position.y) {
-        //         turnPositionsQueue.pop();
-        //     }else {
-        //         break;
-        //     }
-        // }
+        if (i == body.size() - 1 && !turnQueue.empty()) {
+            if (body.back() == turnQueue.front().position) {
+                const_cast<Snake &>(snake).popTurnQueue();
+            }
+        }
 
         GLuint texture{};
         if (isHead) {
             shader->setBool("rotated", true);
             texture = snakeHeadTexture;
-        } else if (body.size() - 1 == i) {
+        } else if (i == body.size() - 1) {
             shader->setBool("rotated", isTurn);
             texture = snakeTailTexture;
         } else {
@@ -193,20 +169,15 @@ void Renderer::renderSnake(const Snake &snake, const Grid &grid) {
             const Direction dir = snake.getCurrentDirection();
             glm::vec2 dirVec(0.0f);
             switch (dir) {
-                case Direction::UP:
-                    dirVec = glm::vec2(0, 1);
+                case Direction::UP: dirVec = glm::vec2(0, 1);
                     break;
-                case Direction::DOWN:
-                    dirVec = glm::vec2(0, -1);
+                case Direction::DOWN: dirVec = glm::vec2(0, -1);
                     break;
-                case Direction::LEFT:
-                    dirVec = glm::vec2(-1, 0);
+                case Direction::LEFT: dirVec = glm::vec2(-1, 0);
                     break;
-                case Direction::RIGHT:
-                    dirVec = glm::vec2(1, 0);
+                case Direction::RIGHT: dirVec = glm::vec2(1, 0);
                     break;
-                default:
-                    break;
+                default: break;
             }
             shader->setVec2("direction", dirVec);
         }
@@ -214,6 +185,18 @@ void Renderer::renderSnake(const Snake &snake, const Grid &grid) {
         snakeMesh->bind();
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
     }
+}
+
+void Renderer::renderFood(const Food &food, const Grid &grid) const {
+    shader->use();
+    shader->setVec3("scalar", grid.getCellScale());
+    shader->setBool("isHead", false);
+    shader->setVec3("cordMove", grid.gridToWorldPosition(food.getPosition()));
+
+    glBindTexture(GL_TEXTURE_2D, snakeHeadTexture);
+
+    foodMesh->bind();
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 }
 
 void Renderer::setViewport(const int width, const int height) {

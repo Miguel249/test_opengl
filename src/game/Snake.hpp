@@ -1,5 +1,6 @@
 #pragma once
 #include <glm.hpp>
+#include <queue>
 #include <vector>
 
 enum class Direction {
@@ -12,6 +13,16 @@ enum class Direction {
 
 class Snake {
 public:
+    struct TurnInfo {
+        glm::vec2 position;
+        Direction fromDir;
+        Direction toDir;
+    };
+
+    Direction lastDirection = Direction::NONE;
+
+    std::queue<TurnInfo> turnPositionsQueue;
+
     Snake(int cols, int rows);
 
     void update(float deltaTime);
@@ -22,21 +33,29 @@ public:
 
     void reset();
 
+    void popTurnQueue() {
+        if (!turnPositionsQueue.empty()) {
+            turnPositionsQueue.pop();
+        }
+    }
+
     // Getters
     [[nodiscard]] const std::vector<glm::vec2> &getBody() const { return body; }
     [[nodiscard]] glm::vec2 getHeadPosition() const { return body.empty() ? glm::vec2(0) : body[0]; }
     [[nodiscard]] Direction getCurrentDirection() const { return currentDirection; }
+    [[nodiscard]] std::queue<TurnInfo> getTurnQueue() const { return turnPositionsQueue; }
 
     // Game logic
     [[nodiscard]] bool checkSelfCollision() const;
 
     [[nodiscard]] bool isOutOfBounds() const;
 
-    mutable bool directionChanged;
 private:
-    std::vector<glm::vec2> body; // Posiciones en coordenadas de grid
+    std::vector<glm::vec2> body;
+    int pendingGrowth = 0;
     Direction currentDirection;
     Direction nextDirection;
+    bool directionChanged;
 
     // Movement timing
     float moveTimer;

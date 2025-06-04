@@ -1,5 +1,6 @@
 #pragma once
 #include <chrono>
+#include "game/Food.hpp"
 #include "core/Renderer.hpp"
 #include <GLFW/glfw3.h>
 #include <memory>
@@ -23,6 +24,7 @@ private:
     // Game components
     std::unique_ptr<Renderer> renderer;
     std::unique_ptr<Snake> snake;
+    std::unique_ptr<Food> food;
     std::unique_ptr<Grid> grid;
     std::unique_ptr<InputManager> inputManager;
 

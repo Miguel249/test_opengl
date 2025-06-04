@@ -6,6 +6,9 @@ void InputManager::processInput(Snake& snake) const {
     if (const Direction newDirection = getDirectionFromInput(); newDirection != Direction::NONE) {
         snake.setDirection(newDirection);
     }
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+        glfwSetWindowShouldClose(window, true);
+    }
 }
 
 bool InputManager::shouldClose() const {

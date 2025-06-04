@@ -33,37 +33,42 @@ void Snake::setDirection(const Direction newDirection) {
 void Snake::move() {
     if (body.empty()) return;
 
+    if (currentDirection != Direction::NONE && currentDirection != lastDirection) {
+        TurnInfo turn{};
+        turn.position = body.front();  // cabeza actual
+        turn.fromDir = lastDirection;
+        turn.toDir = currentDirection;
+        turnPositionsQueue.push(turn);
+        lastDirection = currentDirection;
+    }
+
     const glm::vec2 movement = getMovementVector(currentDirection);
     const glm::vec2 newHead = body[0] + movement;
 
-    // Add new head
     body.insert(body.begin(), newHead);
 
-    // Remove tail (for now, we'll handle growth separately)
-    body.pop_back();
+    if (pendingGrowth > 0) {
+        pendingGrowth--;
+    } else {
+        body.pop_back();
+    }
 }
 
 void Snake::grow() {
     if (body.empty()) return;
 
-    // Add a new segment at the tail
-    const glm::vec2 tail = body.back();
-    body.push_back(tail);
+    pendingGrowth++;
 }
 
 void Snake::reset() {
     body.clear();
     // Start at center of grid
     glm::vec2 centerPos(gridCols / 2, gridRows / 2);
-    glm::vec2 center2Pos(gridCols / 2, gridRows / 2 - 1);
-    glm::vec2 center3Pos(gridCols / 2, gridRows / 2 - 2);
-    // glm::vec2 center4Pos(gridCols / 2, gridRows / 2 - 3);
-    // glm::vec2 center5Pos(gridCols / 2, gridRows / 2 - 4);
+    glm::vec2 centerPos1(gridCols / 2, gridRows / 2 - 1);
+    glm::vec2 centerPos2(gridCols / 2, gridRows / 2 - 2);
     body.emplace_back(centerPos);
-    body.emplace_back(center2Pos);
-    body.emplace_back(center3Pos);
-    // body.emplace_back(center4Pos);
-    // body.emplace_back(center5Pos);
+    body.emplace_back(centerPos1);
+    body.emplace_back(centerPos2);
     currentDirection = Direction::NONE;
     nextDirection = Direction::NONE;
     moveTimer = 0.0f;

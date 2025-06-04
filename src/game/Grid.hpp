@@ -9,16 +9,16 @@ public:
     void generateOffsets();
     
     // Getters
-    int getCols() const { return cols; }
-    int getRows() const { return rows; }
-    const glm::vec3& getCellScale() const { return cellScale; }
-    float getCellStep() const { return cellStep; }
-    const std::vector<glm::vec3>& getOffsets() const { return gridOffsets; }
+    [[nodiscard]] int getCols() const { return cols; }
+    [[nodiscard]] int getRows() const { return rows; }
+    [[nodiscard]] const glm::vec3& getCellScale() const { return cellScale; }
+    [[nodiscard]] float getCellStep() const { return cellStep; }
+    [[nodiscard]] const std::vector<glm::vec3>& getOffsets() const { return gridOffsets; }
     
     // Coordinate conversion
-    glm::vec3 gridToWorldPosition(const glm::vec2& gridPos) const;
-    glm::vec2 worldToGridPosition(const glm::vec3& worldPos) const;
-    bool isValidGridPosition(const glm::vec2& gridPos) const;
+    [[nodiscard]] glm::vec3 gridToWorldPosition(const glm::vec2& gridPos) const;
+    [[nodiscard]] glm::vec2 worldToGridPosition(const glm::vec3& worldPos) const;
+    [[nodiscard]] bool isValidGridPosition(const glm::vec2& gridPos) const;
 
 private:
     int cols;

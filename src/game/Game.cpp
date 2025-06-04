@@ -69,15 +69,16 @@ bool Game::initializeOpenGL() {
 
 void Game::initializeComponents() {
     // Initialize grid
-    constexpr int gridCols = 9;
-    constexpr int gridRows = 9;
-    constexpr glm::vec3 cellScale{ 0.2f, 0.2f, 1.0f };
+    constexpr int gridCols = 19;
+    constexpr int gridRows = 19;
+    constexpr glm::vec3 cellScale{ 0.1f, 0.1f, 1.0f };
 
     grid = std::make_unique<Grid>(gridCols, gridRows, cellScale);
     grid->generateOffsets();
 
     // Initialize snake
     snake = std::make_unique<Snake>(gridCols, gridRows);
+    food = std::make_unique<Food>(gridCols, gridRows);
 
     // Initialize renderer
     renderer = std::make_unique<Renderer>();
@@ -86,6 +87,8 @@ void Game::initializeComponents() {
 
     // Initialize input manager
     inputManager = std::make_unique<InputManager>(window);
+
+    food->spawnFood(*snake);
 }
 
 void Game::run() {
@@ -114,12 +117,18 @@ void Game::update() const {
     if (snake->checkSelfCollision() || snake->isOutOfBounds()) {
         snake->reset();
     }
+
+    if (food->isEaten(snake->getHeadPosition())) {
+        snake->grow();
+        food->spawnFood(*snake);
+    }
 }
 
 void Game::render() const {
     Renderer::clear();
     renderer->renderGrid(*grid);
     renderer->renderSnake(*snake, *grid);
+    renderer->renderFood(*food, *grid);
 }
 
 void Game::calculateDeltaTime() {
