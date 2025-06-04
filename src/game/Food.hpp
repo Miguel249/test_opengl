@@ -13,7 +13,7 @@ public:
 
     [[nodiscard]] bool isEaten(const glm::vec2 &snakeHead) const;
 private:
-    glm::vec2 position;
+    glm::vec2 position{};
 
     int gridCols;
     int gridRows;

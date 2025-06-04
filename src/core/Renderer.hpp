@@ -46,6 +46,7 @@ private:
     GLuint snakeBodyTexture;
     GLuint snakeBodyTurnTexture;
     GLuint snakeTailTexture;
+    GLuint foodTexture;
     GLuint cellTexture;
 
     // Quad data

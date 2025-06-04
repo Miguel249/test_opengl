@@ -4,6 +4,7 @@
 #include <stb_image.h>
 
 Renderer::Renderer() : snakeHeadTexture(0), snakeBodyTexture(0), snakeBodyTurnTexture(0), snakeTailTexture(0),
+                       foodTexture(0),
                        cellTexture(0) {
 }
 
@@ -18,6 +19,8 @@ Renderer::~Renderer() {
         glDeleteTextures(1, &snakeTailTexture);
     if (cellTexture)
         glDeleteTextures(1, &cellTexture);
+    if (foodTexture)
+        glDeleteTextures(1, &foodTexture);
 }
 
 bool Renderer::initialize(const std::string &resourcesDir, const Grid &grid) {
@@ -33,8 +36,10 @@ bool Renderer::initialize(const std::string &resourcesDir, const Grid &grid) {
     snakeBodyTurnTexture = loadTexture(resourcesDir + "/textures/snake_body_turn.png");
     snakeTailTexture = loadTexture(resourcesDir + "/textures/snake_tail.png");
     cellTexture = loadTexture(resourcesDir + "/textures/snake_cell.png");
+    foodTexture = loadTexture(resourcesDir + "/textures/snake_food.png");
 
-    if (!snakeHeadTexture || !cellTexture || !snakeBodyTexture || !snakeBodyTurnTexture) {
+    if (!snakeHeadTexture || !cellTexture || !snakeBodyTexture || !snakeBodyTurnTexture || !snakeTailTexture || !
+        foodTexture) {
         std::cerr << "Failed to load textures" << std::endl;
         return false;
     }
@@ -92,8 +97,8 @@ void Renderer::setupSnakeMesh() {
 
 void Renderer::setupFoodMesh() {
     const std::vector<VertexAttribute> attributes{
-            { 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0, 0 },
-            { 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float), 0 }
+        { 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0, 0 },
+        { 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float), 0 }
     };
 
     foodMesh = std::make_unique<Mesh>(
@@ -193,7 +198,7 @@ void Renderer::renderFood(const Food &food, const Grid &grid) const {
     shader->setBool("isHead", false);
     shader->setVec3("cordMove", grid.gridToWorldPosition(food.getPosition()));
 
-    glBindTexture(GL_TEXTURE_2D, snakeHeadTexture);
+    glBindTexture(GL_TEXTURE_2D, foodTexture);
 
     foodMesh->bind();
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
